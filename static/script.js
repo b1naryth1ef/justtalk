@@ -11,7 +11,7 @@ CHAT_ACTION = _.template(
 
 CHANNEL_LEFT = _.template(
 '<div id="left-channel-<%= obj.name %>" class="left-box-element <% if (obj.selected) { %>selected<% } %>" data-name="<%= obj.name %>">'+
-'<img src="<%= obj.image %>" class="img-rounded" style="float: left; margin-right: 5px; height: 40px;">'+
+'<img src="<%= obj.image %>" class="img-rounded" style="float: left; margin-right: 5px; height: 40px; width: 40px;">'+
 '<h4 style="margin-top: 0px; margin-bottom: 0px"><%= obj.title %></h4>'+
 '<p style="margin-bottom: 0px"><%= obj.topic %></p></div>')
 
@@ -98,6 +98,7 @@ view_main = {
     },
 
     pingChannel: function(chan) {
+        $("#chat-contents").scrollTop($("#chat-contents")[0].scrollHeight);
         if (view_main.channels[chan].selected) {
             return;
         }
@@ -107,15 +108,16 @@ view_main = {
 
     addAction: function(dest, data) {
         $("#channel-"+dest).append(CHAT_ACTION(data))
+        view_main.pingChannel(dest)
     },
 
     handle: function(data) {
         if (data.type == "msg") {
-
             $("#channel-"+data.dest).append(CHAT_MESSAGE({
                 obj: data,
                 time: "12 seconds ago"
             }))
+            view_main.pingChannel(data.dest)
         }
 
         if (data.type == "action") {
@@ -123,6 +125,47 @@ view_main = {
                 obj: data,
                 color: null
             })
+        }
+
+        if (data.type == "quit") {
+            if (!view_main.channels[data.name]) {return}
+            if (data.user == jt.user.username) {return}
+            for (i in view_main.channels[data.name].members) {
+                if (view_main.channels[data.name].members[i].username == data.user) {
+                    view_main.channels[data.name].members.splice(i, 1)
+                    view_main.renderChannels()
+                    view_main.renderUsers()
+                    view_main.addAction(data.name, {
+                        obj: {
+                            action: data.user + " has left the channel",
+                            icon: "user"
+                        },
+                        color: null
+                    })
+                    return
+                }
+            }
+        }
+
+        if (data.type == "join") {
+            if (!view_main.channels[data.name]) {return}
+            if (data.user == jt.user.username) {return}
+            for (i in view_main.channels[data.name].members) {
+                if (view_main.channels[data.name].members[i].username == data.user.username) {
+                    return
+                }
+            }
+            view_main.channels[data.name].members.push(data.user)
+            view_main.renderChannels()
+            view_main.renderUsers()
+            view_main.addAction(data.name, {
+                obj: {
+                    action: data.user.username + " has joined the channel",
+                    icon: "user"
+                },
+                color: null
+            })
+
         }
 
         if (data.type == "error") {
@@ -152,7 +195,7 @@ view_main = {
                     action: data.a,
                     icon: "pencil"
                 },
-                color: "#5bc0de"
+                color: null
             })
         }
 
@@ -165,6 +208,8 @@ view_main = {
                     break;
                 }
             }
+
+            $("#channel-"+data.name).remove()
 
             view_main.renderChannels()
             view_main.renderUsers()

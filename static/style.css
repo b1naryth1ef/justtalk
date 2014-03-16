@@ -390,6 +390,7 @@ font-family: Helvetica, arial, freesans, clean, sans-serif;;
   color: gray;
   background: whiteSmoke;
   border-bottom: none;
+  font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
 /*  -moz-box-shadow:    inset 0 0 3px #000000;
   -webkit-box-shadow: inset 0 0 3px #000000;
   box-shadow:         inset 0 0 3px #000000;*/

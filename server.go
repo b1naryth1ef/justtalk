@@ -146,27 +146,25 @@ func (c *Channel) Load() bool {
 		return true
 	}
 	return false
-	// val, _ := query.Dump()
-	// log.Printf("Query: %s", val)
 }
 
 func (c *Channel) Quit(u *Connection, msg string) {
-	c.Send(ChatAction{
-		Icon:   "user",
-		Action: msg,
-		Dest:   c.Name,
-	})
+	obj := make(json.Object)
+	obj.Set("type", "quit")
+	obj.Set("name", c.Name)
+	obj.Set("user", u.Username)
+	c.SendRaw(obj)
 	delete(c.Members, u.Username)
 }
 
 func (c *Channel) Join(u *Connection) {
 	c.Members[u.Username] = u
 	u.Channels = append(u.Channels, c)
-	c.Send(ChatAction{
-		Icon:   "user",
-		Action: fmt.Sprintf("%s has joined %s", u.Name, c.Title),
-		Dest:   c.Name,
-	})
+	obj := make(json.Object)
+	obj.Set("type", "join")
+	obj.Set("name", c.Name)
+	obj.Set("user", u.ToJson())
+	c.SendRaw(obj)
 	u.Send(c.ToJson())
 }
 
@@ -433,15 +431,24 @@ func main() {
 			u.SendS(ChatError{Msg: "Usage: /join <channel>"})
 			return
 		}
-		if _, chan_exists := CHANS[args[1]]; !chan_exists {
-			channel := NewChannel(args[1], args[1], "", getAvatarUrl(args[1]))
-			CHANS[args[1]] = channel
+		chan_name := strings.ToLower(args[1])
+
+		if _, chan_exists := CHANS[chan_name]; !chan_exists {
+			channel := NewChannel(chan_name, chan_name, "", getAvatarUrl(chan_name))
+			CHANS[chan_name] = channel
 		}
 
-		CHANS[args[1]].Join(u)
+		CHANS[chan_name].Join(u)
 	})
 
 	Bind("delete", func(u *Connection, c *Channel, o json.Object, args []string) {
+		if c.Name == "lobby" {
+			u.Send(json.Object{
+				"type": "error",
+				"msg":  "You cannot delete the lobby!",
+			})
+			return
+		}
 		c.Delete()
 	})
 
