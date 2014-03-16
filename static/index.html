@@ -7,57 +7,25 @@
    </head>
    <body style="">
         <div class="navbar navbar-inverse navbar-fixed-top" style="height: 40px; min-height: 40px; margin-bottom:0px;">
-            <a href="" class="btn btn-lg"><i class="glyphicon glyphicon-align-justify"></i></a>
+            <a href="" class="btn btn-lg"><i class="glyphicon glyphicon-bullhorn"></i></a>
         </div>
         <div class="container-fluid">
             <div class="sidebar" style="margin-top: 29px">
-                <div id="left-box">
-                    <div class="left-box-element selected">
-                        <img src="http://www.gravatar.com/avatar/94d093eda664addd6e450d7e9881bcad?s=64&d=identicon&r=PG" class="img-rounded" style="float: left; margin-right: 5px; height: 40px;">
-                        <h4 style="margin-top: 0px; margin-bottom: 0px">#test</h4>
-                        <p style="margin-bottom: 0px">A room for testing swag</p>
-                    </div>
-                    <div class="left-box-element">
-                        <img src="http://www.gravatar.com/avatar/94d093eda664addd61450d7e98281bc3d?s=64&d=identicon&r=PG" class="img-rounded" style="float: left; margin-right: 5px; height: 40px;">
-                        <h4 style="margin-top: 0px; margin-bottom: 0px">#test</h4>
-                        <p style="margin-bottom: 0px">A room for testing swag</p>
-                    </div>
-                    <div class="left-box-element">
-                        <img src="http://www.gravatar.com/avatar/94d093eda664addd61350d7e98281bc3d?s=64&d=identicon&r=PG" class="img-rounded" style="float: left; margin-right: 5px; height: 40px;">
-                        <h4 style="margin-top: 0px; margin-bottom: 0px">#test</h4>
-                        <p style="margin-bottom: 0px">A room for testing swag</p>
-                    </div>
-                </div>
+                <div id="left-box"></div>
             </div>
             <div class="content" style="margin-top:10px; font-size: 15px">
                 <div id="main-window">
                     <div id="chat-window">
-                        <div id="chat-contents" class="bar">
-<!--                             <div class="message-box">
-                                <img src="http://www.gravatar.com/avatar/94d093eda664addd61350d7e98281bc3d?s=32&d=identicon&r=PG" class="img-rounded" style="margin-right: 5px; height: 30px; vertical-align: middle">
-                                <span>
-                                    <b>Jeff</b>: Hello World!
-                                </span>
-                            </div> -->
-<!--                             <div class="message-box message-box-action">
-                                <i class="glyphicon glyphicon-tags"></i>
-                                <i style="margin-left: 10px">joe pushed 32 commits to <a>yolo/develop</a></i>
-                            </div> -->
-                        </div>
+                        <div id="chat-contents" class="bar"></div>
                         <div id="input-container" class="bar middle-input">
-                         <img src="http://www.gravatar.com/avatar/94d093eda664addd61350d7e98281bc3d?s=32&d=identicon&r=PG" class="img-rounded" style="margin-right: 5px; height: 30px; vertical-align: middle; float: left; margin-top: 5px; margin-left: 10px">
+                         <img id="chat-image" src="http://www.gravatar.com/avatar/94d093eda664addd61350d7e98281bc3d?s=32&d=identicon&r=PG" class="img-rounded" style="margin-right: 5px; height: 30px; vertical-align: middle; float: left; margin-top: 5px; margin-left: 10px">
                             <input type="text" id="middle-input-text" class="form-control"  style="width: 95%; margin-top: 5px; margin-left: 10px">
                         </div>
                     </div>
                     <div id="user-window">
                         <div id="user-list" class="bar" style="padding-left: 10px; padding-top: 10px">
-                            <h2 style="margin-top: 0px">5 people online</h2>
-                            <div class="user-list-item">
-                                <img src="http://www.gravatar.com/avatar/94d093eda664addd61350d7e98281bc3d?s=32&d=identicon&r=PG" class="img-rounded" style="margin-right: 5px; height: 30px; vertical-align: middle">
-                                <span>
-                                    Jeff McJefferson
-                                </span>
-                            </div>
+                            <h2 style="margin-top: 0px"><span id="online-count"></span> people online</h2>
+                            <div id="users-online-now"></div>
                         </div>
                     </div>
                 </div>

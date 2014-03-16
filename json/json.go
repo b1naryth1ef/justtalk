@@ -72,12 +72,12 @@ func (o Object) Iter(f IterFunc) {
 	}
 }
 
-func loader(c map[string]interface{}) Object {
+func Loader(c map[string]interface{}) Object {
 	fresh := Object{}
 	for k, v := range c {
 		switch v.(type) {
 		case map[string]interface{}:
-			fresh[k] = loader(v.(map[string]interface{}))
+			fresh[k] = Loader(v.(map[string]interface{}))
 		default:
 			fresh[k] = v
 		}
@@ -92,7 +92,7 @@ func LoadJsonFromArray(val []byte) []Object {
 	}
 	result := make([]Object, 0)
 	for _, item := range j {
-		result = append(result, loader(item))
+		result = append(result, Loader(item))
 	}
 	return result
 }
@@ -103,5 +103,5 @@ func LoadJson(val []byte) Object {
 		fmt.Printf("%s", err)
 	}
 
-	return loader(j)
+	return Loader(j)
 }
