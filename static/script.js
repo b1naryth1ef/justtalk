@@ -62,6 +62,7 @@ view_main = {
     renderChannels: function () {
         $("#left-box").empty()
         _.each(view_main.channels, function(v, i) {
+            console.log(v)
             $("#left-box").append(CHANNEL_LEFT({
                 obj: v
             }))
@@ -154,6 +155,20 @@ view_main = {
                 color: "#5bc0de"
             })
         }
+
+        if (data.type == "channelclose") {
+            delete view_main.channels[data.name]
+
+            if (view_main.channels) {
+                for (chan in view_main.channels) {
+                    view_main.select(chan)
+                    break;
+                }
+            }
+
+            view_main.renderChannels()
+            view_main.renderUsers()
+        }
     }
 }
 
@@ -169,7 +184,22 @@ jt = {
     view: view_main,
 
     init: function() {
-        jt.setupWebSocket();
+        if (localStorage.getItem("username")) {
+            jt.setupWebSocket(
+                localStorage.getItem("username"),
+                localStorage.getItem("password")
+            );
+        } else {
+            $("#login").modal("show")
+            $("#login-button").click(function (e) {
+                localStorage.setItem("username", $("#login-username").val());
+                localStorage.setItem("password", $("#login-password").val());
+                jt.setupWebSocket(
+                    $("#login-username").val(),
+                    $("#login-password").val()
+                );
+            })
+        }
         jt.view.render()
     },
 
@@ -178,7 +208,10 @@ jt = {
     },
 
     onSocketClose: function (e) {
-        alert("Websocket closed!");
+        $(".container-fluid").addClass("body-error")
+        $("#navbar").hide();
+        $("#conn-lost").show();
+        // alert("Websocket closed!");
     },
 
 
@@ -197,6 +230,7 @@ jt = {
                     jt.user.authed = true;
                     jt.user.avatar = obj.avatar;
                     jt.view.renderUser()
+                    $("#login").modal("hide")
                 } else {
                     alert("Could not login!");
                 }
@@ -206,7 +240,7 @@ jt = {
         jt.view.handle(obj)
     },
 
-    setupWebSocket: function() {
+    setupWebSocket: function(username, password) {
         if (window["WebSocket"]) {
             jt.conn = new WebSocket("ws://"+window.location.host+"/socket");
             jt.conn.onclose = jt.onSocketClose;
@@ -214,9 +248,9 @@ jt = {
             jt.conn.onopen = function () {
                 jt.send({
                     "type": "hello",
-                    "username": jt.user.username,
-                    "name": jt.user.name,
-                    "password": "1234" // HASH lewl
+                    "username": username,
+                    "name": username.split("@")[0],
+                    "password": password // HASH lewl
                 })
             }
         } else {

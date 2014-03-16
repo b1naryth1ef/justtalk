@@ -83,6 +83,17 @@ func NewChannel(name, title, topic, image string) *Channel {
 	return &ch
 }
 
+func (c *Channel) Delete() {
+	chans := DB.Use("channels")
+	chans.Delete(c.ID)
+
+	obj := make(json.Object)
+	obj.Set("type", "channelclose")
+	obj.Set("name", c.Name)
+	c.SendRaw(obj)
+	delete(CHANS, c.Name)
+}
+
 func (c *Channel) Save() {
 	chans := DB.Use("channels")
 	err := chans.Update(c.ID, c.ToJson())
@@ -102,18 +113,24 @@ func (c *Channel) SaveNew() {
 	c.ID = doc
 }
 
-func (c *Channel) Load() bool {
+func FindChannel(name string) map[uint64]struct{} {
 	chans := DB.Use("channels")
 	// so securezzz
-	queryStr := fmt.Sprintf(`[{"eq": "%s", "in": ["name"]}]`, c.Name)
+	queryStr := fmt.Sprintf(`[{"eq": "%s", "in": ["name"]}]`, name)
 	var query interface{}
 	jzon.Unmarshal([]byte(queryStr), &query)
 
 	queryResult := make(map[uint64]struct{})
 	if err := db.EvalQuery(query, chans, &queryResult); err != nil {
-		panic(err)
+		return nil
 	}
+	log.Printf("Size: %s", len(queryResult))
+	return queryResult
+}
 
+func (c *Channel) Load() bool {
+	chans := DB.Use("channels")
+	queryResult := FindChannel(c.Name)
 	if len(queryResult) > 0 {
 		var data interface{}
 		var id uint64
@@ -281,14 +298,16 @@ func (c *Connection) ActionJoin(o json.Object) {
 	var has bool
 	chans := o.Value("channels").([]interface{})
 	for _, v := range chans {
-		log.Printf("Channel: %s", v.(string))
-		ch, has = CHANS[v.(string)]
+		chan_name := v.(string)
+		log.Printf("Channel: %s", chan_name)
+		ch, has = CHANS[chan_name]
 		if !has {
-			ch = NewChannel(v.(string), "", "", "")
-			if ch.Title == "" {
+			if len(FindChannel(chan_name)) > 0 {
+				ch = NewChannel(chan_name, chan_name, "", "")
+				CHANS[ch.Name] = ch
+			} else {
 				continue
 			}
-			CHANS[ch.Name] = ch
 		}
 		if !ch.IsMember(c) {
 			ch.Join(c)
@@ -422,6 +441,10 @@ func main() {
 		CHANS[args[1]].Join(u)
 	})
 
+	Bind("delete", func(u *Connection, c *Channel, o json.Object, args []string) {
+		c.Delete()
+	})
+
 	Bind("cset", func(u *Connection, c *Channel, o json.Object, args []string) {
 		resp := make(json.Object)
 		if len(args) < 3 {
@@ -441,7 +464,7 @@ func main() {
 			c.Image = args[2]
 			resp.Set("k", "image")
 			resp.Set("v", c.Image)
-			resp.Set("a", fmt.Sprintf("%s changed the image to '%s'", u.Name, c.Image))
+			resp.Set("a", fmt.Sprintf("%s changed the channel icon", u.Name))
 		} else if args[1] == "title" {
 			c.Title = strings.Join(args[2:], " ")
 			if len(c.Title) > 25 {

@@ -553,3 +553,9 @@ div.embed-toggle {
   color: #666666;
 }
 
+
+.body-error {
+  opacity: 0.1;
+  filter: alpha(opacity=70);
+/*  background: darkgray;*/
+}
