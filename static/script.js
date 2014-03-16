@@ -6,7 +6,7 @@ CHAT_MESSAGE = _.template(
 
 CHAT_ACTION = _.template(
 '<div class="message-box message-box-action">'+
-    '<% if (obj.icon) { %><i class="glyphicon glyphicon-<%= obj.icon %>"></i><% } %>'+
+    '<% if (obj.icon) { %><i class="fa fa-<%= obj.icon %>"></i><% } %>'+
     '<i style="margin-left: 10px; <% if (color) {%>color: <%= color %> <% } %>"><%= obj.action %></i></div>')
 
 CHANNEL_LEFT = _.template(
@@ -95,6 +95,7 @@ view_main = {
                 sel.hide()
             }
         })
+        $("#chat-contents").scrollTop($("#chat-contents")[0].scrollHeight);
     },
 
     pingChannel: function(chan) {
@@ -138,7 +139,7 @@ view_main = {
                     view_main.addAction(data.name, {
                         obj: {
                             action: data.user + " has left the channel",
-                            icon: "user"
+                            icon: "sign-out"
                         },
                         color: null
                     })
@@ -161,7 +162,7 @@ view_main = {
             view_main.addAction(data.name, {
                 obj: {
                     action: data.user.username + " has joined the channel",
-                    icon: "user"
+                    icon: "sign-in"
                 },
                 color: null
             })
@@ -172,7 +173,7 @@ view_main = {
             view_main.addAction(view_main.getCurrentChannel().name, {
                 obj: {
                     action: data.msg,
-                    icon: "exclamation-sign"
+                    icon: "warning"
                 },
                 color: "#B80000"
             })

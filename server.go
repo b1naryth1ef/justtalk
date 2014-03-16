@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"github.com/HouzuoGuo/tiedot/db"
 	"github.com/gorilla/websocket"
+	"github.com/vmihailenco/redis/v2"
 	"io"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -61,6 +63,7 @@ var CONNS map[string]*Connection = make(map[string]*Connection, 0)
 var CHANS map[string]*Channel = make(map[string]*Channel, 0)
 var CMDS map[string]CmdFunc = make(map[string]CmdFunc, 0)
 var DB *db.DB
+var RED *redis.Client
 
 func Bind(n string, f CmdFunc) {
 	CMDS[n] = f
@@ -284,9 +287,16 @@ func (c *Connection) ActionMsg(ch *Channel, o json.Object) {
 		return
 	}
 
+	data, _ := json.Object{
+		"user":    c.Username,
+		"msg":     msg,
+		"channel": ch.Name,
+	}.Dump()
+	RED.Publish("justtalk-"+ch.Name, string(data))
+
 	ch.Send(ChatMessage{
 		User: c,
-		Msg:  o.VStr("msg"),
+		Msg:  msg,
 		Dest: ch.Name,
 	})
 }
@@ -402,6 +412,7 @@ func hook_exit() {
 		for sig := range c {
 			log.Printf("Goodbye %s!", sig)
 			DB.Close()
+			RED.Close()
 			os.Exit(0)
 		}
 	}()
@@ -420,11 +431,54 @@ func setup_db() {
 	chans.Index([]string{"name"})
 }
 
+func setup_redis() {
+	RED = redis.NewTCPClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+}
+
+func web_send_to(w http.ResponseWriter, r *http.Request) {
+	asstr, _ := ioutil.ReadAll(r.Body)
+	log.Printf("Data: `%s`", asstr)
+	obj := json.LoadJson(asstr)
+	if !obj.Has("channel") || !obj.Has("msg") {
+		http.Error(w, "Invalid Payload", 400)
+		return
+	}
+
+	channel, check := CHANS[obj.VStr("channel")]
+	if !check {
+		http.Error(w, "Invald Channel", 400)
+		return
+	}
+
+	data := json.Object{
+		"type":   "action",
+		"action": obj.VStr("msg"),
+		"icon":   obj.VStr("icon"),
+		"dest":   channel.Name,
+	}
+
+	log.Printf("Sending message from API")
+	if obj.Has("user") {
+		user, check := CONNS[obj.VStr("user")]
+		if !check {
+			http.Error(w, "Invalid User", 400)
+			return
+		}
+		user.Send(data)
+	} else {
+		channel.SendRaw(data)
+	}
+}
+
 func main() {
 	setup_db()
+	setup_redis()
 	hook_exit()
 	http.Handle("/", http.FileServer(http.Dir("static")))
 	http.HandleFunc("/socket", handleWebSocket)
+	http.HandleFunc("/api/send", web_send_to)
 
 	Bind("join", func(u *Connection, c *Channel, o json.Object, args []string) {
 		if len(args) < 2 {
