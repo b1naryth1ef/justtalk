@@ -409,7 +409,7 @@ func hook_exit() {
 
 func setup_db() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	new_db, err := db.OpenDB("sweg")
+	new_db, err := db.OpenDB("database")
 	if err != nil {
 		panic(err)
 	}
