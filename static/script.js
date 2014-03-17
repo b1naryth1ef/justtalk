@@ -328,7 +328,7 @@ jt = {
 
     setupWebSocket: function(username, password) {
         if (window["WebSocket"]) {
-            jt.conn = new WebSocket("ws://"+window.location.host+"/socket");
+            jt.conn = new WebSocket("ws://"+window.location.host+":5000/socket");
             jt.conn.onclose = jt.onSocketClose;
             jt.conn.onmessage = jt.onSocketMessage;
             jt.conn.onopen = function () {
