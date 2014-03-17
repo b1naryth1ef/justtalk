@@ -1,3 +1,6 @@
+function isNumber(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
 
 view_main = {
     channels: {},
@@ -63,8 +66,18 @@ view_main = {
         }
 
         $("#toggle-notifications").click(function (e) {
-            window.webkitNotifications.requestPermission();
+            window.webkitNotifications.requestPermission(function (a, b) {
+                console.log(a)
+                console.log(b)
+            });
         })
+
+        $("html").on("drop", function(event) {
+            event.preventDefault();  
+            event.stopPropagation();
+            alert("Dropped!");
+            console.log("DROPPED");
+        });
 
     },
 
@@ -294,7 +307,8 @@ jt = {
     },
 
     onSocketClose: function (e) {
-        $(".container-fluid").addClass("body-error")
+        //$(".container-fluid").addClass("body-error")
+        $(".overlay").show()
         $("#navbar").hide();
         $("#conn-lost").show();
         // alert("Websocket closed!");
@@ -328,7 +342,8 @@ jt = {
 
     setupWebSocket: function(username, password) {
         if (window["WebSocket"]) {
-            jt.conn = new WebSocket("ws://"+window.location.host+":5000/socket");
+            var port = window.location.port ? "" : "5000"
+            jt.conn = new WebSocket("ws://"+window.location.host+":"+port+"/socket");
             jt.conn.onclose = jt.onSocketClose;
             jt.conn.onmessage = jt.onSocketMessage;
             jt.conn.onopen = function () {

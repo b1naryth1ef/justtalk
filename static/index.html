@@ -7,6 +7,10 @@
       <link href='http://fonts.googleapis.com/css?family=Ubuntu' rel='stylesheet' type='text/css'>
    </head>
    <body>
+        <div class="overlay" style="display: none;"></div>
+        <div class="alert alert-danger fade in" id="conn-lost" style="display:none; z-index:101; position:fixed;%">
+            <b>Uh Oh!</b> Looks like something went wrong! Try refreshing the page to fix thise issue
+        </div>
         <div class="navbar navbar-inverse navbar-fixed-top" id="navbar" style="height: 40px; min-height: 40px; margin-bottom:0px;">
             
             <div class="dropdown">
@@ -17,9 +21,6 @@
                     <li><a id="toggle-notifications">Enable Notifications</a></li>
                 </ul>
             </div>
-        </div>
-        <div class="alert alert-danger fade in" style="display: none" id="conn-lost">
-            <b>Uh Oh!</b> Looks like something went wrong! Try refreshing the page to fix thise issue
         </div>
         <div class="container-fluid">
             <div class="sidebar" style="margin-top: 29px">
