@@ -239,10 +239,10 @@ jt = {
             $("#login").modal("show")
             $("#login-button").click(function (e) {
                 localStorage.setItem("username", $("#login-username").val());
-                localStorage.setItem("password", $("#login-password").val());
+                localStorage.setItem("password", "");
                 jt.setupWebSocket(
                     $("#login-username").val(),
-                    $("#login-password").val()
+                    ""//$("#login-password").val()
                 );
             })
         }
