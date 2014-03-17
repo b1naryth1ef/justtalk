@@ -495,6 +495,25 @@ func main() {
 		CHANS[chan_name].Join(u)
 	})
 
+	Bind("quit", func(u *Connection, c *Channel, o json.Object, args []string) {
+		if len(args) < 2 {
+			u.SendS(ChatError{Msg: "Usage: /quit <channel>"})
+			return
+		}
+		chan_name := strings.ToLower(args[1])
+
+		for _, ch := range u.Channels {
+			if ch.Name == chan_name {
+				ch.Quit(u, "%s has left the channel")
+				return
+			}
+		}
+
+		u.SendS(ChatError{
+			Msg: fmt.Sprintf("You are not part of the channel '%s'", chan_name),
+		})
+	})
+
 	Bind("delete", func(u *Connection, c *Channel, o json.Object, args []string) {
 		if c.Name == "lobby" {
 			u.Send(json.Object{

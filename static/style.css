@@ -32,6 +32,12 @@ h6,
   border-radius: 0 !important;
 }
 
+.no-round {
+  -webkit-border-radius: 0 !important;
+  -moz-border-radius: 0 !important;
+  border-radius: 0 !important;
+}
+
 #middle-input {
   margin-bottom: 10px;
 }
