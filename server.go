@@ -513,6 +513,14 @@ func main() {
 			return
 		}
 
+		if c.Name == "lobby" {
+			u.Send(json.Object{
+				"type": "error",
+				"msg":  "You cannot edit the lobby!",
+			})
+			return
+		}
+
 		resp.Set("type", "updatechannel")
 		resp.Set("name", c.Name)
 
