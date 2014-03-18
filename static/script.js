@@ -1,30 +1,32 @@
-
-CHAT_MESSAGE = _.template(
-    '<div class="message-box">'+
-    '<img src="<%= obj.avatar %>" class="img-rounded chat-avatar"><b><%= obj.username %></b><br />'+
-    '<span><%= obj.msg %></span></div>')
-
-CHAT_ACTION = _.template(
-'<div class="message-box message-box-action">'+
-    '<% if (obj.icon) { %><i class="fa fa-<%= obj.icon %>"></i><% } %>'+
-    '<i style="margin-left: 10px; <% if (color) {%>color: <%= color %> <% } %>"><%= obj.action %></i></div>')
-
-CHANNEL_LEFT = _.template(
-'<div id="left-channel-<%= obj.name %>" class="left-box-element <% if (obj.selected) { %>selected<% } %>" data-name="<%= obj.name %>">'+
-'<img src="<%= obj.image %>" class="img-rounded" style="float: left; margin-right: 5px; height: 40px; width: 40px;">'+
-'<h4 style="margin-top: 0px; margin-bottom: 0px"><%= obj.title %></h4>'+
-'<p style="margin-bottom: 0px"><%= obj.topic %></p></div>')
-
-USER_RIGHT = _.template(
-'<div class="user-list-item">'+
-'<img src="<%= obj.avatar %>" class="img-rounded" style="margin-right: 5px; height: 30px; vertical-align: middle">'+
-'<span><%= obj.name %></span><br /></div>')
-
-USER_CACHE = {}
+function isNumber(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
 
 view_main = {
     channels: {},
+    timer: null,
+    notifications: false,
 
+    flashTitle: function(text) {
+        if (view_main.timer) { return }
+
+        var original = document.title
+
+        $(window).blur(function () {
+            view_main.timer = setInterval(function() {
+                var val = $('title').text() == original ? text : original;
+                $('title').text(val);
+            }, 1000)
+        })
+
+        $(window).focus(function() {
+            clearInterval(view_main.timer)
+            view_main.timer = null;
+            document.title = original;
+        })
+    },
+
+    // Gets the currently active channel
     getCurrentChannel: function () {
         for (i in view_main.channels) {
             if (view_main.channels[i].selected) {
@@ -33,6 +35,7 @@ view_main = {
         }
     },
 
+    // Called when a user sends a message
     onSendMessage: function() {
         jt.send({
             "type": "msg",
@@ -42,38 +45,59 @@ view_main = {
         $("#middle-input-text").val("")
     },
 
+    // First time render, should only be called once ideally
     render: function() {
+        // Input
         $('#middle-input-text').keypress(function(e) {
             if(e.which == 13) {
                 view_main.onSendMessage();
                 e.preventDefault();
             }
         });
-    },
 
-    renderUser: function () {
-        $("#chat-image").attr("src", jt.user.avatar)
+        // Changing channels
         $("#left-box").delegate(".left-box-element", "click", function (e) {
             view_main.select($(this).data("name"))
             view_main.renderUsers()
         })
+
+        if (window.webkitNotifications.checkPermission() == 0) {
+            $("#toggle-notifications").hide()
+        }
+
+        $("#toggle-notifications").click(function (e) {
+            window.webkitNotifications.requestPermission(function (a, b) {
+                console.log(a)
+                console.log(b)
+            });
+        })
+
+        $("html").on("drop", function(event) {
+            event.preventDefault();  
+            event.stopPropagation();
+            alert("Dropped!");
+            console.log("DROPPED");
+        });
+
     },
 
+    // Renders the left hand channel list
     renderChannels: function () {
         $("#left-box").empty()
         _.each(view_main.channels, function(v, i) {
             console.log(v)
-            $("#left-box").append(CHANNEL_LEFT({
+            $("#left-box").append(TEMPLATES.CHANNEL_LEFT({
                 obj: v
             }))
         })
     },
 
+    // Renders the right hand user list
     renderUsers: function() {
         $("#users-online-now").empty()
         var total = 0
         _.each(view_main.getCurrentChannel().members, function(user, y) {
-            $("#users-online-now").append(USER_RIGHT({
+            $("#users-online-now").append(TEMPLATES.USER_RIGHT({
                 obj: user
             }))
             total += 1
@@ -81,6 +105,7 @@ view_main = {
         $("#online-count").text(total)
     },
 
+    // Changes the selected channel
     select: function(chan) {
         _.each(view_main.channels, function(channel, x) {
             channel.selected = (x == chan)
@@ -89,36 +114,64 @@ view_main = {
             if (channel.selected) {
                 sel.show()
                 $("#left-channel-"+channel.name).addClass("selected")
+                $("#left-channel-"+channel.name).removeClass("left-box-activity")
+                channel.unread = 0
+                if (channel.notification) {
+                    channel.notification.close()
+                }
             } else {
                 $("#left-channel-"+channel.name).removeClass("selected")
-                $("#left-channel-"+chan).removeClass("left-box-activity")
                 sel.hide()
             }
         })
         $("#chat-contents").scrollTop($("#chat-contents")[0].scrollHeight);
     },
 
-    pingChannel: function(chan) {
+    // Marks a background channel when it has "changed" (e.g. chat/action)
+    //  in some way.
+    pingChannel: function(chan, data) {
         $("#chat-contents").scrollTop($("#chat-contents")[0].scrollHeight);
-        if (view_main.channels[chan].selected) {
+        var channel = view_main.channels[chan];
+        if (channel.selected) {
             return;
         }
 
+        // Increment unread counter
+        channel.unread += 1
+
+
+        if (data) {
+            if (window.webkitNotifications.checkPermission() == 0) {
+                channel.notification = new Notification(channel.title, {
+                    body: TEMPLATES.NOTIFICATION({
+                        username: data.username,
+                        msg: data.msg,
+                        count: channel.unread - 1
+                    }),
+                    icon: channel.image,
+                    tag: channel.name
+                })
+            };
+        }
+
+        // view_main.flashTitle("Actvity in "+view_main.channels[chan].title)
         $("#left-channel-"+chan).addClass("left-box-activity")
     },
 
+    // Adds a channel action
     addAction: function(dest, data) {
-        $("#channel-"+dest).append(CHAT_ACTION(data))
+        $("#channel-"+dest).append(TEMPLATES.CHAT_ACTION(data))
         view_main.pingChannel(dest)
     },
 
+    // Handles incoming websocket data
     handle: function(data) {
         if (data.type == "msg") {
-            $("#channel-"+data.dest).append(CHAT_MESSAGE({
+            $("#channel-"+data.dest).append(TEMPLATES.CHAT_MESSAGE({
                 obj: data,
                 time: "12 seconds ago"
             }))
-            view_main.pingChannel(data.dest)
+            view_main.pingChannel(data.dest, data)
         }
 
         if (data.type == "action") {
@@ -181,6 +234,7 @@ view_main = {
 
         if (data.type == "channel") {
             $("#chat-contents").append('<div style="display: none" id="channel-'+data.name+'"></div>')
+            data.unread = 0
             view_main.channels[data.name] = data
             view_main.select(data.name)
             view_main.renderChannels()
@@ -211,7 +265,6 @@ view_main = {
             }
 
             $("#channel-"+data.name).remove()
-
             view_main.renderChannels()
             view_main.renderUsers()
         }
@@ -239,10 +292,10 @@ jt = {
             $("#login").modal("show")
             $("#login-button").click(function (e) {
                 localStorage.setItem("username", $("#login-username").val());
-                localStorage.setItem("password", $("#login-password").val());
+                localStorage.setItem("password", "");
                 jt.setupWebSocket(
                     $("#login-username").val(),
-                    $("#login-password").val()
+                    ""//$("#login-password").val()
                 );
             })
         }
@@ -254,7 +307,8 @@ jt = {
     },
 
     onSocketClose: function (e) {
-        $(".container-fluid").addClass("body-error")
+        //$(".container-fluid").addClass("body-error")
+        $(".overlay").show()
         $("#navbar").hide();
         $("#conn-lost").show();
         // alert("Websocket closed!");
@@ -275,7 +329,7 @@ jt = {
                     }
                     jt.user.authed = true;
                     jt.user.avatar = obj.avatar;
-                    jt.view.renderUser()
+                    $("#chat-image").attr("src", jt.user.avatar)
                     $("#login").modal("hide")
                 } else {
                     alert("Could not login!");
@@ -288,7 +342,8 @@ jt = {
 
     setupWebSocket: function(username, password) {
         if (window["WebSocket"]) {
-            jt.conn = new WebSocket("ws://"+window.location.host+"/socket");
+            var port = window.location.port ? "" : "5000"
+            jt.conn = new WebSocket("ws://"+window.location.host+":"+port+"/socket");
             jt.conn.onclose = jt.onSocketClose;
             jt.conn.onmessage = jt.onSocketMessage;
             jt.conn.onopen = function () {

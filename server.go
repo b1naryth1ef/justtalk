@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/HouzuoGuo/tiedot/db"
 	"github.com/gorilla/websocket"
+	"github.com/russross/blackfriday"
 	"github.com/vmihailenco/redis/v2"
 	"io"
 	"io/ioutil"
@@ -287,16 +288,18 @@ func (c *Connection) ActionMsg(ch *Channel, o json.Object) {
 		return
 	}
 
+	x := string(blackfriday.MarkdownBasic([]byte(msg)))
+	log.Printf("%s = %s", msg, x)
 	data, _ := json.Object{
 		"user":    c.Username,
-		"msg":     msg,
+		"msg":     x,
 		"channel": ch.Name,
 	}.Dump()
 	RED.Publish("justtalk-"+ch.Name, string(data))
 
 	ch.Send(ChatMessage{
 		User: c,
-		Msg:  msg,
+		Msg:  x,
 		Dest: ch.Name,
 	})
 }
@@ -472,6 +475,10 @@ func web_send_to(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func web_upload(w http.ResponseWriter, r *http.Request) {
+	// mr, err := r.MultipartReader(
+}
+
 func main() {
 	setup_db()
 	setup_redis()
@@ -479,6 +486,7 @@ func main() {
 	http.Handle("/", http.FileServer(http.Dir("static")))
 	http.HandleFunc("/socket", handleWebSocket)
 	http.HandleFunc("/api/send", web_send_to)
+	http.HandleFunc("/api/upload", web_upload)
 
 	Bind("join", func(u *Connection, c *Channel, o json.Object, args []string) {
 		if len(args) < 2 {
@@ -493,6 +501,25 @@ func main() {
 		}
 
 		CHANS[chan_name].Join(u)
+	})
+
+	Bind("quit", func(u *Connection, c *Channel, o json.Object, args []string) {
+		if len(args) < 2 {
+			u.SendS(ChatError{Msg: "Usage: /quit <channel>"})
+			return
+		}
+		chan_name := strings.ToLower(args[1])
+
+		for _, ch := range u.Channels {
+			if ch.Name == chan_name {
+				ch.Quit(u, "%s has left the channel")
+				return
+			}
+		}
+
+		u.SendS(ChatError{
+			Msg: fmt.Sprintf("You are not part of the channel '%s'", chan_name),
+		})
 	})
 
 	Bind("delete", func(u *Connection, c *Channel, o json.Object, args []string) {
