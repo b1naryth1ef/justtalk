@@ -169,7 +169,7 @@ view_main = {
         if (data.type == "msg") {
             $("#channel-"+data.dest).append(TEMPLATES.CHAT_MESSAGE({
                 obj: data,
-                time: "12 seconds ago"
+                time: ""
             }))
             view_main.pingChannel(data.dest, data)
         }

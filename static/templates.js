@@ -1,7 +1,7 @@
 var TEMPLATES = {
     CHAT_MESSAGE: _.template(
         '<div class="message-box">'+
-        '<img src="<%= obj.avatar %>" class="img-rounded chat-avatar"><b><%= obj.username %></b>'+
+        '<img src="<%= obj.avatar %>" class="img-rounded chat-avatar"><b><%= obj.name %></b>'+
         '<p style="float: right;"><%= time %><br /><span><%= obj.msg %></span></div>'),
 
     CHAT_ACTION: _.template(
