@@ -17,6 +17,7 @@ type Connection struct {
 	Name     string
 	Avatar   string
 	Channels []*Channel
+	Limit    int
 }
 
 func (c *Connection) Send(o json.Object) {
@@ -136,6 +137,14 @@ func (c *Connection) ReadLoop() {
 			log.Printf("Read Loop Err: %v", err)
 			c.Disconnect("%s has quit")
 			return
+		}
+
+		// Rate limit users
+		if c.Limit < 35 {
+			c.Limit += 1
+		} else {
+			log.Printf("Rate limiting %s", c.Username)
+			continue
 		}
 
 		log.Printf("Got message: %s", message)

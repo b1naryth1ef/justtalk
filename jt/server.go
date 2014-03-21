@@ -144,6 +144,17 @@ func web_upload(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func DecrementLimit() {
+	for {
+		for _, user := range CONNS {
+			if user.Limit > 0 {
+				user.Limit -= 1
+			}
+		}
+		time.Sleep(time.Second * 3)
+	}
+}
+
 func Run() {
 	setup_db()
 	setup_redis()
@@ -169,24 +180,14 @@ func Run() {
 	})
 
 	Bind("quit", func(u *Connection, c *Channel, o json.Object, args []string) {
-		// if len(args) < 2 {
-		// 	u.SendS(ChatError{Msg: "Usage: /quit <channel>"})
-		// 	return
-		// }
-		// chan_name := strings.ToLower(args[1])
-
-		// for _, ch := range u.Channels {
-		// 	if ch.Name == chan_name {
-		// 		ch.Quit(u, "%s has left the channel")
-		// 		return
-		// 	}
-		// }
+		if c.Name == "lobby" {
+			u.SendS(ChatError{
+				Msg: "You cannot leave the lobby!",
+			})
+			return
+		}
 
 		c.Quit(u, "%s has left the channel")
-
-		// u.SendS(ChatError{
-		// 	Msg: fmt.Sprintf("You are not part of the channel '%s'", chan_name),
-		// })
 	})
 
 	Bind("delete", func(u *Connection, c *Channel, o json.Object, args []string) {
@@ -240,6 +241,8 @@ func Run() {
 	})
 
 	CHANS["lobby"] = NewChannel("lobby", "The Lobby", "Sit down and have a cup of tea", "http://media2.hpcwire.com/datanami/couchbase.png")
+
+	go DecrementLimit()
 
 	err := http.ListenAndServe(":5000", nil)
 	if err != nil {
