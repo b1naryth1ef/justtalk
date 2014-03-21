@@ -201,7 +201,7 @@ view_main = {
 
         if (data.type == "quit") {
             if (!view_main.channels[data.name]) {return}
-            if (data.user == jt.user.username) {return}
+            // todo functionaize
             for (i in view_main.channels[data.name].members) {
                 if (view_main.channels[data.name].members[i].username == data.user) {
                     view_main.channels[data.name].members.splice(i, 1)
@@ -214,8 +214,23 @@ view_main = {
                         },
                         color: null
                     })
-                    return
+                    break
                 }
+            }
+
+            if (data.user == jt.user.username) {
+                console.log("Quitting")
+                delete view_main.channels[data.name]
+
+                if (view_main.channels) {
+                    for (chan in view_main.channels) {
+                        view_main.select(chan)
+                        break;
+                    }
+                }
+                $("#channel-"+data.name).remove()
+                view_main.renderChannels()
+                view_main.renderUsers()
             }
         }
 

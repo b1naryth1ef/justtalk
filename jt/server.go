@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/HouzuoGuo/tiedot/db"
 	"github.com/gorilla/websocket"
+	"github.com/kennygrant/sanitize"
 	"github.com/russross/blackfriday"
 	"github.com/vmihailenco/redis/v2"
 	"io"
@@ -168,22 +169,24 @@ func Run() {
 	})
 
 	Bind("quit", func(u *Connection, c *Channel, o json.Object, args []string) {
-		if len(args) < 2 {
-			u.SendS(ChatError{Msg: "Usage: /quit <channel>"})
-			return
-		}
-		chan_name := strings.ToLower(args[1])
+		// if len(args) < 2 {
+		// 	u.SendS(ChatError{Msg: "Usage: /quit <channel>"})
+		// 	return
+		// }
+		// chan_name := strings.ToLower(args[1])
 
-		for _, ch := range u.Channels {
-			if ch.Name == chan_name {
-				ch.Quit(u, "%s has left the channel")
-				return
-			}
-		}
+		// for _, ch := range u.Channels {
+		// 	if ch.Name == chan_name {
+		// 		ch.Quit(u, "%s has left the channel")
+		// 		return
+		// 	}
+		// }
 
-		u.SendS(ChatError{
-			Msg: fmt.Sprintf("You are not part of the channel '%s'", chan_name),
-		})
+		c.Quit(u, "%s has left the channel")
+
+		// u.SendS(ChatError{
+		// 	Msg: fmt.Sprintf("You are not part of the channel '%s'", chan_name),
+		// })
 	})
 
 	Bind("delete", func(u *Connection, c *Channel, o json.Object, args []string) {
@@ -208,17 +211,18 @@ func Run() {
 		resp.Set("name", c.Name)
 
 		if args[1] == "topic" {
-			c.Topic = string(blackfriday.MarkdownCommon([]byte(strings.Join(args[2:], " "))))
+
+			c.Topic = string(blackfriday.MarkdownCommon([]byte(sanitize.HTML(strings.Join(args[2:], " ")))))
 			resp.Set("k", "topic")
 			resp.Set("v", c.Topic)
 			resp.Set("a", fmt.Sprintf("%s has changed the channel topic", u.Name))
 		} else if args[1] == "image" {
-			c.Image = args[2]
+			c.Image = sanitize.HTML(args[2])
 			resp.Set("k", "image")
 			resp.Set("v", c.Image)
 			resp.Set("a", fmt.Sprintf("%s has changed the channel icon", u.Name))
 		} else if args[1] == "title" {
-			c.Title = strings.Join(args[2:], " ")
+			c.Title = sanitize.HTML(strings.Join(args[2:], " "))
 			if len(c.Title) > 25 {
 				c.Title = c.Title[:25]
 			}

@@ -1,11 +1,11 @@
 package jt
 
 import (
-    "./json"
-    "log"
-    "github.com/HouzuoGuo/tiedot/db"
-    "fmt"
-    jzon "encoding/json"
+	"./json"
+	jzon "encoding/json"
+	"fmt"
+	"github.com/HouzuoGuo/tiedot/db"
+	"log"
 )
 
 type Channel struct {
@@ -105,6 +105,8 @@ func (c *Channel) Quit(u *Connection, msg string) {
 	obj.Set("name", c.Name)
 	obj.Set("user", u.Username)
 	c.SendRaw(obj)
+	data, _ := obj.Dump()
+	log.Printf("Sending %s:", data)
 	delete(c.Members, u.Username)
 }
 

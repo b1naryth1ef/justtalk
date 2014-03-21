@@ -37,9 +37,9 @@ func (c *Connection) ActionHello(o json.Object) {
 	resp := make(json.Object, 0)
 	resp.Set("type", "hello")
 	resp.Set("success", true)
-	c.Username = o.VStr("username")
-	c.Name = o.VStr("name")
-	c.Avatar = getAvatarUrl(c.Username)
+	c.Username = sanitize.HTML(o.VStr("username"))
+	c.Name = sanitize.HTML(o.VStr("name"))
+	c.Avatar = sanitize.HTML(getAvatarUrl(c.Username))
 	resp.Set("avatar", c.Avatar)
 	c.Send(resp)
 	CHANS["lobby"].Join(c)
@@ -72,6 +72,14 @@ func (c *Connection) ActionMsg(ch *Channel, o json.Object) {
 	// Prevent darren from haxing
 	msg = sanitize.HTML(msg)
 
+	// Prevent yogi from spamming
+	if len(msg) > 1000 {
+		c.SendS(ChatError{
+			Msg: "That message is too large!",
+		})
+		return
+	}
+
 	packet := json.Object{
 		"avatar":   c.Avatar,
 		"username": c.Username,
@@ -92,7 +100,7 @@ func (c *Connection) ActionJoin(o json.Object) {
 	var has bool
 	chans := o.Value("channels").([]interface{})
 	for _, v := range chans {
-		chan_name := v.(string)
+		chan_name := sanitize.HTML(v.(string))
 		log.Printf("Channel: %s", chan_name)
 		ch, has = CHANS[chan_name]
 		if !has {
