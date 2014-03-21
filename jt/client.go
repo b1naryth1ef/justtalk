@@ -39,6 +39,13 @@ func (c *Connection) ActionHello(o json.Object) {
 	resp.Set("type", "hello")
 	resp.Set("success", true)
 	c.Username = sanitize.HTML(o.VStr("username"))
+
+	// TODO errors
+	if 20 < len(c.Username) < 6 {
+		// needs to be between 6-12 characters
+		return
+	}
+
 	c.Name = sanitize.HTML(o.VStr("name"))
 	c.Avatar = sanitize.HTML(getAvatarUrl(c.Username))
 	resp.Set("avatar", c.Avatar)
@@ -59,7 +66,8 @@ func (c *Connection) ActionCmd(ch *Channel, o json.Object) {
 }
 
 func (c *Connection) ActionMsg(ch *Channel, o json.Object) {
-	msg := o.VStr("msg")
+	// Prevent darren from haxing
+	msg := sanitize.HTML(o.VStr("msg"))
 
 	if msg == "" {
 		return
@@ -69,9 +77,6 @@ func (c *Connection) ActionMsg(ch *Channel, o json.Object) {
 		c.ActionCmd(ch, o)
 		return
 	}
-
-	// Prevent darren from haxing
-	msg = sanitize.HTML(msg)
 
 	// Prevent yogi from spamming
 	if len(msg) > 1000 {

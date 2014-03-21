@@ -404,8 +404,8 @@ h6,
 
 .message-box p {
   margin-bottom: 5px;
-  width: 17%;
-  word-wrap: break-word;
+/*  width: 17%;
+  word-wrap: break-word;*/
 }
 
 .chat-name {
