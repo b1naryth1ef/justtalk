@@ -1,12 +1,13 @@
 package jt
 
 import (
-    "./json"
-    "github.com/gorilla/websocket"
-    "strings"
-    "fmt"
-    "github.com/russross/blackfriday"
-    "log"
+	"./json"
+	"fmt"
+	"github.com/gorilla/websocket"
+	"github.com/kennygrant/sanitize"
+	"github.com/russross/blackfriday"
+	"log"
+	"strings"
 )
 
 type Connection struct {
@@ -68,6 +69,9 @@ func (c *Connection) ActionMsg(ch *Channel, o json.Object) {
 		return
 	}
 
+	// Prevent darren from haxing
+	msg = sanitize.HTML(msg)
+
 	packet := json.Object{
 		"avatar":   c.Avatar,
 		"username": c.Username,
@@ -101,66 +105,66 @@ func (c *Connection) ActionJoin(o json.Object) {
 		}
 		if !ch.IsMember(c) {
 			ch.Join(c)
-        }
+		}
 
-    }
+	}
 }
 
 func (c *Connection) Disconnect(msg string) {
-    delete(CONNS, c.Username)
-    for _, v := range c.Channels {
-        v.Quit(c, fmt.Sprintf(msg, c.Name))
-    }
+	delete(CONNS, c.Username)
+	for _, v := range c.Channels {
+		v.Quit(c, fmt.Sprintf(msg, c.Name))
+	}
 }
 
 func (c *Connection) ReadLoop() {
-    var dest *Channel
-    var ch bool
+	var dest *Channel
+	var ch bool
 
-    defer c.ws.Close()
-    for {
-        _, message, err := c.ws.ReadMessage()
-        if err != nil {
-            log.Printf("Read Loop Err: %v", err)
-            c.Disconnect("%s has quit")
-            return
-        }
+	defer c.ws.Close()
+	for {
+		_, message, err := c.ws.ReadMessage()
+		if err != nil {
+			log.Printf("Read Loop Err: %v", err)
+			c.Disconnect("%s has quit")
+			return
+		}
 
-        log.Printf("Got message: %s", message)
+		log.Printf("Got message: %s", message)
 
-        obj := json.LoadJson(message)
-        action := obj.VStr("type")
-        resp := make(json.Object, 0)
+		obj := json.LoadJson(message)
+		action := obj.VStr("type")
+		resp := make(json.Object, 0)
 
-        if obj.Has("dest") {
-            destname := obj.VStr("dest")
-            if dest, ch = CHANS[destname]; !ch {
-                resp.Set("type", "error")
-                resp.Set("msg", fmt.Sprintf("Invalid channel: %s", destname))
-                c.Send(resp)
-                continue
-            }
-        }
+		if obj.Has("dest") {
+			destname := obj.VStr("dest")
+			if dest, ch = CHANS[destname]; !ch {
+				resp.Set("type", "error")
+				resp.Set("msg", fmt.Sprintf("Invalid channel: %s", destname))
+				c.Send(resp)
+				continue
+			}
+		}
 
-        if action == "hello" {
-            c.ActionHello(obj)
-        } else if action == "msg" {
-            c.ActionMsg(dest, obj)
-        } else if action == "join" {
-            c.ActionJoin(obj)
-        }
-    }
+		if action == "hello" {
+			c.ActionHello(obj)
+		} else if action == "msg" {
+			c.ActionMsg(dest, obj)
+		} else if action == "join" {
+			c.ActionJoin(obj)
+		}
+	}
 }
 
 func (c *Connection) WriteLoop() {
-    defer c.ws.Close()
-    for message := range c.Buffer {
-        err := c.ws.WriteMessage(websocket.TextMessage, message)
-        if err != nil {
-            log.Printf("WriteLoop err: %v", err)
-            return
-        }
-    }
+	defer c.ws.Close()
+	for message := range c.Buffer {
+		err := c.ws.WriteMessage(websocket.TextMessage, message)
+		if err != nil {
+			log.Printf("WriteLoop err: %v", err)
+			return
+		}
+	}
 }
 
 func (c Connection) ToJson() json.Object {
