@@ -1,11 +1,13 @@
 package jt
 
-import "./json"
-import "github.com/gorilla/websocket"
-import "strings"
-import "fmt"
-import "github.com/russross/blackfriday"
-import "log"
+import (
+    "./json"
+    "github.com/gorilla/websocket"
+    "strings"
+    "fmt"
+    "github.com/russross/blackfriday"
+    "log"
+)
 
 type Connection struct {
 	ws       *websocket.Conn

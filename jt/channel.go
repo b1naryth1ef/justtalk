@@ -1,10 +1,12 @@
 package jt
 
-import "./json"
-import "log"
-import "github.com/HouzuoGuo/tiedot/db"
-import "fmt"
-import jzon "encoding/json"
+import (
+    "./json"
+    "log"
+    "github.com/HouzuoGuo/tiedot/db"
+    "fmt"
+    jzon "encoding/json"
+)
 
 type Channel struct {
 	ID      uint64

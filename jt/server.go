@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/HouzuoGuo/tiedot/db"
 	"github.com/gorilla/websocket"
+	"github.com/russross/blackfriday"
 	"github.com/vmihailenco/redis/v2"
 	"io"
 	"io/ioutil"
@@ -122,7 +123,24 @@ func web_send_to(w http.ResponseWriter, r *http.Request) {
 }
 
 func web_upload(w http.ResponseWriter, r *http.Request) {
-	// mr, err := r.MultipartReader(
+	err := r.ParseMultipartForm(100000)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	m := r.MultipartForm
+
+	files := m.File["file"]
+	for i, _ := range files {
+		log.Printf("Parsing one file!")
+		file, err := files[i].Open()
+		defer file.Close()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
 }
 
 func Run() {
@@ -190,15 +208,15 @@ func Run() {
 		resp.Set("name", c.Name)
 
 		if args[1] == "topic" {
-			c.Topic = strings.Join(args[2:], " ")
+			c.Topic = string(blackfriday.MarkdownCommon([]byte(strings.Join(args[2:], " "))))
 			resp.Set("k", "topic")
 			resp.Set("v", c.Topic)
-			resp.Set("a", fmt.Sprintf("%s changed the topic to '%s'", u.Name, c.Topic))
+			resp.Set("a", fmt.Sprintf("%s has changed the channel topic", u.Name))
 		} else if args[1] == "image" {
 			c.Image = args[2]
 			resp.Set("k", "image")
 			resp.Set("v", c.Image)
-			resp.Set("a", fmt.Sprintf("%s changed the channel icon", u.Name))
+			resp.Set("a", fmt.Sprintf("%s has changed the channel icon", u.Name))
 		} else if args[1] == "title" {
 			c.Title = strings.Join(args[2:], " ")
 			if len(c.Title) > 25 {
@@ -206,7 +224,7 @@ func Run() {
 			}
 			resp.Set("k", "title")
 			resp.Set("v", c.Title)
-			resp.Set("a", fmt.Sprintf("%s changed the title to '%s'", u.Name, c.Title))
+			resp.Set("a", fmt.Sprintf("%s has changed the channel title", u.Name))
 		} else {
 			u.SendS(ChatError{Msg: "Channel Set Values: topic, image, title"})
 			return

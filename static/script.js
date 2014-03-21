@@ -2,6 +2,23 @@ function isNumber(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
+function drupload(files) {
+    var formData = new FormData();
+    for (var i = 0; i < files.length; i++) {
+      formData.append('file', files[i]);
+    }
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/upload');
+    xhr.onload = function () {
+      if (xhr.status != 200) {
+        alert("Uh Oh! Something went wonkers!");
+      }
+    };
+
+    xhr.send(formData);
+}
+
 view_main = {
     channels: {},
     timer: null,
@@ -72,11 +89,12 @@ view_main = {
             });
         })
 
-        $("html").on("drop", function(event) {
+        $("*:visible").on("drop", function(event) {
             event.preventDefault();  
             event.stopPropagation();
-            alert("Dropped!");
-            console.log("DROPPED");
+            alert("Dropped!")
+            drupload(event.dataTransfer.files)
+            return false
         });
 
     },
