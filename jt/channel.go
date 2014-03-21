@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/HouzuoGuo/tiedot/db"
 	"log"
+	"strings"
 )
 
 type Channel struct {
@@ -66,8 +67,9 @@ func (c *Channel) SaveNew() {
 
 func FindChannel(name string) map[uint64]struct{} {
 	chans := DB.Use("channels")
-	// so securezzz
-	strings.replace(name, `"`, `\"`)
+
+	// TODO: better sanitization
+	strings.Replace(name, `"`, `\"`, -1)
 	queryStr := fmt.Sprintf(`[{"eq": "%s", "in": ["name"]}]`, name)
 	var query interface{}
 	jzon.Unmarshal([]byte(queryStr), &query)

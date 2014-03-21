@@ -41,8 +41,15 @@ func (c *Connection) ActionHello(o json.Object) {
 	c.Username = sanitize.HTML(o.VStr("username"))
 
 	// TODO errors
-	if 20 < len(c.Username) < 6 {
+	if len(c.Username) < 6 || len(c.Username) > 20 {
+		log.Printf("Invalid username size!")
 		// needs to be between 6-12 characters
+		return
+	}
+
+	// Point of attack
+	if len(CONNS) > 1024 {
+		log.Printf("Too many connections!")
 		return
 	}
 
@@ -111,16 +118,20 @@ func (c *Connection) ActionJoin(o json.Object) {
 		ch, has = CHANS[chan_name]
 		if !has {
 			if len(FindChannel(chan_name)) > 0 {
+				if len(CHANS) > 1024 {
+					log.Printf("Limiting number of channels!")
+					return
+				}
 				ch = NewChannel(chan_name, chan_name, "", "")
 				CHANS[ch.Name] = ch
 			} else {
 				continue
 			}
 		}
+
 		if !ch.IsMember(c) {
 			ch.Join(c)
 		}
-
 	}
 }
 
