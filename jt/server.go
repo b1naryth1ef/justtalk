@@ -212,7 +212,6 @@ func Run() {
 		resp.Set("name", c.Name)
 
 		if args[1] == "topic" {
-
 			c.Topic = string(blackfriday.MarkdownCommon([]byte(sanitize.HTML(strings.Join(args[2:], " ")))))
 			resp.Set("k", "topic")
 			resp.Set("v", c.Topic)

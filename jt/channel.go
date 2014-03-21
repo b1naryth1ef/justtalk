@@ -67,6 +67,7 @@ func (c *Channel) SaveNew() {
 func FindChannel(name string) map[uint64]struct{} {
 	chans := DB.Use("channels")
 	// so securezzz
+	strings.replace(name, `"`, `\"`)
 	queryStr := fmt.Sprintf(`[{"eq": "%s", "in": ["name"]}]`, name)
 	var query interface{}
 	jzon.Unmarshal([]byte(queryStr), &query)
