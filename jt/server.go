@@ -202,7 +202,7 @@ func handleLogout(rw http.ResponseWriter, req *http.Request) {
 	session, _ := store.Get(req, "justtalk")
 	delete(session.Values, "id")
 	session.Save(req, rw)
-	http.Redirect(rw, req, "/", 200)
+	http.Redirect(rw, req, "/", http.StatusMovedPermanently)
 }
 
 func Run() {

@@ -1,2 +1,6 @@
 database
 server_*
+auth.json
+cache.json
+request.token
+*.pyc

@@ -150,5 +150,5 @@ func handleOAuth2Callback(w http.ResponseWriter, r *http.Request) {
 	session.Values["id"] = id
 	session.Save(r, w)
 
-	http.Redirect(w, r, "/", 200)
+	http.Redirect(w, r, "/", http.StatusFound)
 }
