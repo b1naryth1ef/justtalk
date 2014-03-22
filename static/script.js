@@ -21,26 +21,24 @@ function drupload(files) {
 
 view_main = {
     channels: {},
-    timer: null,
-    notifications: false,
+    title_flash: null,
+    title_origin: null,
 
     flashTitle: function(text) {
-        if (view_main.timer) { return }
-
-        var original = document.title
-
-        $(window).blur(function () {
-            view_main.timer = setInterval(function() {
-                var val = $('title').text() == original ? text : original;
-                $('title').text(val);
-            }, 1000)
-        })
-
-        $(window).focus(function() {
-            clearInterval(view_main.timer)
-            view_main.timer = null;
-            document.title = original;
-        })
+        view_main.title_origin = document.title
+        clearInterval(view_main.title_flash)
+        view_main.title_flash = setInterval(function() {
+            if (window.document.hasFocus()) {
+                document.title = view_main.title_origin
+                clearInterval(view_main.title_flash)
+                return
+            }
+            if (document.title == view_main.title_origin) {
+                document.title = text
+            } else {
+                document.title = view_main.title_origin
+            }
+        }, 1000);
     },
 
     // Gets the currently active channel
@@ -83,19 +81,17 @@ view_main = {
         }
 
         $("#toggle-notifications").click(function (e) {
-            window.webkitNotifications.requestPermission(function (a, b) {
-                console.log(a)
-                console.log(b)
-            });
+            window.webkitNotifications.requestPermission();
         })
 
-        $("*:visible").on("drop", function(event) {
-            event.preventDefault();  
-            event.stopPropagation();
-            alert("Dropped!")
-            drupload(event.dataTransfer.files)
-            return false
-        });
+        // Clears notifications on window focus gain
+        $(window).focus(function () {
+            _.each(view_main.channels, function (v) {
+                if (v.notification && v.selected) {
+                    v.notification.close();
+                }
+            })
+        })
 
     },
 
@@ -150,21 +146,19 @@ view_main = {
     pingChannel: function(chan, data) {
         $("#chat-contents").scrollTop($("#chat-contents")[0].scrollHeight);
         var channel = view_main.channels[chan];
-        if (channel.selected) {
-            return;
-        }
 
         // Increment unread counter
         channel.unread += 1
 
+        if (data && !window.document.hasFocus()) {
+            view_main.flashTitle("Actvity in "+view_main.channels[chan].title)
 
-        if (data) {
             if (window.webkitNotifications.checkPermission() == 0) {
                 channel.notification = new Notification(channel.title, {
                     body: TEMPLATES.NOTIFICATION({
                         username: data.username,
-                        msg: data.msg,
-                        count: channel.unread - 1
+                        msg: data.raw,
+                        count: ((channel.unread > 1) ? channel.unread : 0)
                     }),
                     icon: channel.image,
                     tag: channel.name
@@ -172,8 +166,9 @@ view_main = {
             };
         }
 
-        // view_main.flashTitle("Actvity in "+view_main.channels[chan].title)
-        $("#left-channel-"+chan).addClass("left-box-activity")
+        if (!channel.selected) {
+            $("#left-channel-"+chan).addClass("left-box-activity")
+        }
     },
 
     // Adds a channel action
@@ -308,30 +303,26 @@ view_main = {
 jt = {
     conn: null,
     user: {
-        username: "andrei@spoton.com",
-        name: "Andrei",
+        username: "",
+        name: "",
         authed: false,
         avatar: ""
     },
     view: view_main,
 
     init: function() {
-        if (localStorage.getItem("username")) {
-            jt.setupWebSocket(
-                localStorage.getItem("username"),
-                localStorage.getItem("password")
-            );
-        } else {
-            $("#login").modal("show")
-            $("#login-button").click(function (e) {
-                localStorage.setItem("username", $("#login-username").val());
-                localStorage.setItem("password", "");
-                jt.setupWebSocket(
-                    $("#login-username").val(),
-                    ""//$("#login-password").val()
-                );
-            })
-        }
+        $.ajax("/api/user", {
+            success: function(data) {
+                if (!data.success) {
+                    $("#login").modal("show")
+                    $("#login-button").click(function (e) {
+                        window.location = "/authorize"
+                    })
+                } else {
+                    jt.setupWebSocket()
+                }
+            }
+        })
         jt.view.render()
     },
 
@@ -340,17 +331,13 @@ jt = {
     },
 
     onSocketClose: function (e) {
-        //$(".container-fluid").addClass("body-error")
         $(".overlay").show()
         $("#navbar").hide();
         $("#conn-lost").show();
-        // alert("Websocket closed!");
     },
-
 
     onSocketMessage: function (e) {
         var obj = JSON.parse(e.data);
-        console.log(obj)
         switch (obj.type) {
             case "hello":
                 if (obj.success) {
@@ -360,12 +347,12 @@ jt = {
                             "channels": JSON.parse(localStorage.getItem("channels"))
                         })
                     }
+                    jt.user = obj.user
                     jt.user.authed = true;
-                    jt.user.avatar = obj.avatar;
                     $("#chat-image").attr("src", jt.user.avatar)
                     $("#login").modal("hide")
                 } else {
-                    alert("Could not login!");
+                    alert("Could not login: "+obj.msg);
                 }
                 break;
         }
@@ -373,19 +360,14 @@ jt = {
         jt.view.handle(obj)
     },
 
-    setupWebSocket: function(username, password) {
+    setupWebSocket: function() {
         if (window["WebSocket"]) {
             var port = window.location.port ? "" : "5000"
             jt.conn = new WebSocket("ws://"+window.location.host+":"+port+"/socket");
             jt.conn.onclose = jt.onSocketClose;
             jt.conn.onmessage = jt.onSocketMessage;
             jt.conn.onopen = function () {
-                jt.send({
-                    "type": "hello",
-                    "username": username,
-                    "name": username.split("@")[0],
-                    "password": password // HASH lewl
-                })
+                jt.send({"type": "hello"})
             }
         } else {
             alert("Your browser does not have websocket support :(");

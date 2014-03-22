@@ -33,11 +33,20 @@ func Bind(n string, f CmdFunc) {
 }
 
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	user := GetUserFromRequest(r)
+
+	if user == nil {
+		http.Error(w, "Yeah right...", 400)
+		return
+	}
+
 	ws, err := websocket.Upgrade(w, r, nil, 1024, 1024)
 	if err == nil {
 		c := &Connection{
 			Buffer: make(chan []byte, 256),
-			ws:     ws}
+			ws:     ws,
+		}
+		c.LoadUser(user)
 		go c.ReadLoop()
 		c.WriteLoop()
 	} else {
@@ -80,6 +89,10 @@ func setup_db() {
 	DB.Create("channels", 2)
 	chans := DB.Use("channels")
 	chans.Index([]string{"name"})
+
+	DB.Create("users", 2)
+	users := DB.Use("users")
+	users.Index([]string{"email"})
 }
 
 func setup_redis() {
@@ -155,14 +168,56 @@ func DecrementLimit() {
 	}
 }
 
+func GetUserFromRequest(req *http.Request) json.Object {
+	session, _ := store.Get(req, "justtalk")
+	id, has := session.Values["id"]
+	if !has {
+		return nil
+	}
+
+	user := GetUser(id.(uint64))
+	if !user.Has("email") {
+		return nil
+	}
+
+	return user
+}
+
+func web_user(rw http.ResponseWriter, req *http.Request) {
+	user := GetUserFromRequest(req)
+	if user == nil {
+		fmt.Fprint(rw, `{"success": false}`)
+		return
+	}
+
+	user.Set("success", true)
+
+	data, _ := user.Dump()
+	rw.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(rw, "%s", data)
+	return
+}
+
+func handleLogout(rw http.ResponseWriter, req *http.Request) {
+	session, _ := store.Get(req, "justtalk")
+	delete(session.Values, "id")
+	session.Save(req, rw)
+	http.Redirect(rw, req, "/", 200)
+}
+
 func Run() {
 	setup_db()
 	setup_redis()
+	setup_auth()
 	hook_exit()
 	http.Handle("/", http.FileServer(http.Dir("static")))
 	http.HandleFunc("/socket", handleWebSocket)
 	http.HandleFunc("/api/send", web_send_to)
 	http.HandleFunc("/api/upload", web_upload)
+	http.HandleFunc("/api/user", web_user)
+	http.HandleFunc("/logout", handleLogout)
+	http.HandleFunc("/authorize", handleAuthorize)
+	http.HandleFunc("/oauth2callback", handleOAuth2Callback)
 
 	Bind("join", func(u *Connection, c *Channel, o json.Object, args []string) {
 		if len(args) < 2 {
@@ -239,7 +294,7 @@ func Run() {
 
 	})
 
-	CHANS["lobby"] = NewChannel("lobby", "The Lobby", "Sit down and have a cup of tea", "http://media2.hpcwire.com/datanami/couchbase.png")
+	CHANS["lobby"] = NewChannel("lobby", "The Lobby", "Sit down and have a cup of tea", "https://lh5.ggpht.com/LkzyZWEvMWSym5etth9H3a2vMCxUZFNW99seYYF6XPKIGNvY3m1YzTe0QCDMQB9G0QM=w300")
 
 	go DecrementLimit()
 

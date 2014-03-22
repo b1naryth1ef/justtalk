@@ -20,6 +20,12 @@ type Connection struct {
 	Limit    int
 }
 
+func (c *Connection) LoadUser(u json.Object) {
+	c.Username = u.VStr("email")
+	c.Name = u.VStr("given_name")
+	c.Avatar = u.VStr("picture")
+}
+
 func (c *Connection) Send(o json.Object) {
 	data, _ := o.Dump()
 	c.ws.WriteMessage(websocket.TextMessage, data)
@@ -31,34 +37,22 @@ func (c *Connection) SendS(o Serializable) {
 
 func (c *Connection) ActionHello(o json.Object) {
 	if _, ch := CONNS[o.VStr("username")]; ch {
-		c.SendS(ChatError{Msg: "Nope!"})
+		c.Send(json.Object{
+			"type":    "hello",
+			"success": false,
+			"msg":     "You are already logged in!",
+		})
 		return
 	}
 
-	resp := make(json.Object, 0)
-	resp.Set("type", "hello")
-	resp.Set("success", true)
-	c.Username = sanitize.HTML(o.VStr("username"))
-
-	// TODO errors
-	if len(c.Username) < 6 || len(c.Username) > 20 {
-		log.Printf("Invalid username size!")
-		// needs to be between 6-12 characters
-		return
-	}
-
-	// Point of attack
-	if len(CONNS) > 1024 {
-		log.Printf("Too many connections!")
-		return
-	}
-
-	c.Name = sanitize.HTML(o.VStr("name"))
-	c.Avatar = sanitize.HTML(getAvatarUrl(c.Username))
-	resp.Set("avatar", c.Avatar)
-	c.Send(resp)
 	CHANS["lobby"].Join(c)
 	CONNS[c.Username] = c
+
+	c.Send(json.Object{
+		"type":    "hello",
+		"success": true,
+		"user":    c.ToJson(),
+	})
 }
 
 func (c *Connection) ActionCmd(ch *Channel, o json.Object) {
@@ -98,6 +92,7 @@ func (c *Connection) ActionMsg(ch *Channel, o json.Object) {
 		"username": c.Username,
 		"name":     c.Name,
 		"msg":      string(blackfriday.MarkdownCommon([]byte(msg))),
+		"raw":      msg,
 		"dest":     ch.Name,
 		"type":     "msg",
 	}
