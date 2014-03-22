@@ -10,7 +10,7 @@ r = redis.Redis()
 
 class API(object):
     def __init__(self, url="http://localhost:5000"):
-        self.url = url
+        self.url = CONFIG.get("url", url)
 
     def request(self, route, data):
         r = requests.post(self.url+"/api/"+route, data=json.dumps(data))
@@ -39,7 +39,7 @@ HANDLE = Handler()
 def save_config():
     print "Saving Config"
     with open("config.js", "w") as f:
-        json.dump(config, f)
+        json.dump(CONFIG, f)
 
 def load_config():
     global CONFIG
