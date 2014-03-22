@@ -185,6 +185,11 @@ func web_upload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		raw, _ := ioutil.ReadAll(file)
+		if len(raw) > 5242880 {
+			http.Error(w, "File is too big!", 400)
+			return
+		}
+
 		RED.SetEx(key, time.Minute*60, string(raw))
 		RED.SetEx(key+"-type", time.Minute*60, files[i].Header.Get("Content-Type"))
 		log.Printf("Uploaded file %s", key)

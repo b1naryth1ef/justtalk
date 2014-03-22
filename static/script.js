@@ -233,7 +233,7 @@ view_main = {
 
             $("#channel-"+data.dest).append(TEMPLATES.CHAT_MESSAGE({
                 obj: data,
-                time: ""
+                time: "" //moment().format("X")
             }))
             view_main.pingChannel(data.dest, data)
         }

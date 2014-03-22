@@ -10,7 +10,7 @@ LUNCH_TYPE = ['delicious', 'om nom nomy', 'yummy', 'tasty', 'yoloy']
 
 def lunch(obj):
     print api.r.lrange("plugin-lunch", 0, -1)
-    msg = "It's a %s day for some %s %s!" % (
+    msg = "It's an %s day for some %s %s!" % (
         random.choice(DAY_TYPE),
         random.choice(LUNCH_TYPE),
         random.choice(api.r.lrange("plugin-lunch", 0, -1)))
