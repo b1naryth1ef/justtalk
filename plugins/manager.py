@@ -22,6 +22,7 @@ class API(object):
             "channel": channel,
             "msg": text,
             "icon": icon,
+            "raw": True
         }
         if user:
             data['user'] = user

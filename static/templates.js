@@ -7,7 +7,8 @@ var TEMPLATES = {
     CHAT_ACTION: _.template(
         '<div class="message-box message-box-action">'+
         '<% if (obj.icon) { %><i class="fa fa-<%= obj.icon %>"></i><% } %>'+
-        '<i style="margin-left: 10px; <% if (color) {%>color: <%= color %> <% } %>"><%- obj.action %></i></div>'),
+        '<i style="margin-left: 10px; <% if (color) {%>color: <%= color %> <% } %>">'+
+        '<% if (obj.raw) { %><%= obj.action %><% } else {%><%- obj.action %><% } %></i></div>'),
 
     CHANNEL_LEFT: _.template(
         '<div id="left-channel-<%= obj.name %>" class="left-box-element <% if (obj.selected) { %>selected<% } %>" data-name="<%= obj.name %>">'+
