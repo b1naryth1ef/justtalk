@@ -51,7 +51,9 @@ def activity_loop():
         for event in data:
             print LAST, event['id']
             if event['id'] <= LAST: continue
-            url = ("https://%s.codebasehq.com" % CONFIG.get("account"))+HREF.findall(event['html_text'])[0]
+            data = HREF.findall(event['html_text'])
+            if not len(data): continue
+            url = ("https://%s.codebasehq.com" % CONFIG.get("account"))+data[0]
             msg = '<a href="%s">%s</a>' % (url, event['title'])
 
             if event['type'] == "push":
