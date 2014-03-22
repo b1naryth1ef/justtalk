@@ -66,7 +66,6 @@ def activity_loop():
     while True:
         data = cb.get_activity()
         for event in data:
-            print LAST, event['id']
             if event['id'] <= LAST: continue
             data = HREF.findall(event['html_text'])
             if not len(data): continue

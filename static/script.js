@@ -23,6 +23,8 @@ view_main = {
     channels: {},
     title_flash: null,
     title_origin: null,
+    sent_history: [],
+    history_point: 0,
 
     flashTitle: function(text) {
         view_main.title_origin = document.title
@@ -52,9 +54,17 @@ view_main = {
 
     // Called when a user sends a message
     onSendMessage: function() {
+        var text = $("#middle-input-text").val()
+
+        view_main.history_point = 0
+        view_main.sent_history.unshift(text)
+        if (view_main.sent_history.length > 250) {
+            view_main.sent_history.pop(-1)
+        }
+
         jt.send({
             "type": "msg",
-            "msg": $("#middle-input-text").val(),
+            "msg": text,
             "dest": view_main.getCurrentChannel().name
         })
         $("#middle-input-text").val("")
@@ -63,10 +73,28 @@ view_main = {
     // First time render, should only be called once ideally
     render: function() {
         // Input
-        $('#middle-input-text').keypress(function(e) {
+        $('#middle-input-text').keydown(function(e) {
             if(e.which == 13) {
                 view_main.onSendMessage();
+            }
+
+            // Handles up/down arrow history
+            if (e.which == 38 || e.which == 40) { 
                 e.preventDefault();
+
+                if (e.which == 38) view_main.history_point++
+                if (e.which == 40) view_main.history_point--
+
+                if (view_main.history_point == 250 || view_main.history_point > view_main.sent_history.length) {
+                    view_main.history_point = view_main.sent_history.length
+                    return
+                } else if (view_main.history_point < 1) {
+                    $("#middle-input-text").val("")
+                    view_main.history_point = 0
+                    return
+                }
+                
+                $("#middle-input-text").val(view_main.sent_history[view_main.history_point-1])
             }
         });
 
