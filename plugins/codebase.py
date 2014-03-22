@@ -32,6 +32,7 @@ class Codebase():
 cb = None
 
 def ticket(obj):
+    global CONFIG
     if len(obj['args']) < 1:
         api.send_action(obj['channel'], "Usage: !ticket <ticket num>")
         return
