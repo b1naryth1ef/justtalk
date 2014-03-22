@@ -119,7 +119,7 @@ func web_send_to(w http.ResponseWriter, r *http.Request) {
 	data := json.Object{
 		"type":   "action",
 		"action": obj.VStr("msg"),
-		"raw":    obj.Value("has").(bool),
+		"raw":    obj.Value("raw").(bool),
 		"icon":   obj.VStr("icon"),
 		"dest":   channel.Name,
 	}
