@@ -25,6 +25,7 @@ view_main = {
     title_origin: null,
     sent_history: [],
     history_point: 0,
+    highlight: new RegExp(/@([a-zA-Z0-9]+)/g),
 
     flashTitle: function(text) {
         view_main.title_origin = document.title
@@ -115,8 +116,9 @@ view_main = {
         // Clears notifications on window focus gain
         $(window).focus(function () {
             _.each(view_main.channels, function (v) {
-                if (v.notification && v.selected) {
-                    v.notification.close();
+                if (v.selected) {
+                    if (v.notification) v.notification.close();
+                    v.unread = 0
                 }
             })
         })
@@ -172,10 +174,10 @@ view_main = {
         $("#chat-contents").scrollTop($("#chat-contents")[0].scrollHeight);
         var channel = view_main.channels[chan];
 
-        // Increment unread counter
-        channel.unread += 1
-
         if (data && !window.document.hasFocus()) {
+            if (data.msg) {
+                channel.unread += 1
+            }
             view_main.flashTitle("Actvity in "+view_main.channels[chan].title)
 
             if (window.webkitNotifications.checkPermission() == 0) {
@@ -205,6 +207,23 @@ view_main = {
     // Handles incoming websocket data
     handle: function(data) {
         if (data.type == "msg") {
+            data.highlight = false
+
+            // Highlight @ mentions
+            if (data.username != jt.user.username) {
+                var hilights = data.msg.match(view_main.highlight)
+                if (hilights) {
+                    for (i in hilights) {
+                        if (hilights[i].toLowerCase() == "@"+jt.user.name.toLowerCase()) {
+                            data.highlight = true
+                        }
+                    }
+                }
+            }
+
+            // Bold all highlights
+            data.msg = data.msg.replace(view_main.highlight, "<b>$&</b>")
+
             $("#channel-"+data.dest).append(TEMPLATES.CHAT_MESSAGE({
                 obj: data,
                 time: ""

@@ -1,6 +1,6 @@
 var TEMPLATES = {
     CHAT_MESSAGE: _.template(
-        '<div class="message-box">'+
+        '<div class="message-box <%= obj.highlight ? "highlight" : "" %>">'+
         '<img src="<%= obj.avatar %>" class="img-rounded chat-avatar"><b><%= obj.name %></b>'+
         '<p style="float: right;"><%= time %><br /><span><%= obj.msg %></span></div>'),
 
@@ -22,5 +22,5 @@ var TEMPLATES = {
         '<span><%= obj.name %></span><br /></div>'),
 
     NOTIFICATION: _.template("<%- username %>: <%= msg %><% if (count) { %>"+
-        " (<%= count %> unread messages)<% } %>")
+        " (and <%= count %> more)<% } %>")
 }

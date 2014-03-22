@@ -564,3 +564,8 @@ div.embed-toggle {
     left:50%;
     z-index:101;
 }
+
+
+.highlight {
+  background-color: #fcf8e3;
+}
