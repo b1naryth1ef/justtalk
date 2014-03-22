@@ -109,14 +109,11 @@ view_main = {
     // Renders the right hand user list
     renderUsers: function() {
         $("#users-online-now").empty()
-        var total = 0
         _.each(view_main.getCurrentChannel().members, function(user, y) {
             $("#users-online-now").append(TEMPLATES.USER_RIGHT({
                 obj: user
             }))
-            total += 1
         })
-        $("#online-count").text(total)
     },
 
     // Changes the selected channel

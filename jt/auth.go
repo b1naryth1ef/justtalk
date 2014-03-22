@@ -43,7 +43,7 @@ func loadAuthConfig() {
 	authcfg = &oauth.Config{
 		ClientId:     web.VStr("client_id"),
 		ClientSecret: web.VStr("client_secret"),
-		RedirectURL:  "http://localhost:5000/oauth2callback",
+		RedirectURL:  web.Value("redirect_uris").([]interface{})[0].(string),
 		Scope:        "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
 		AuthURL:      web.VStr("auth_uri"),
 		TokenURL:     web.VStr("token_uri"),
