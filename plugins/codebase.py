@@ -37,8 +37,8 @@ def ticket(obj):
         return
     try:
         data = cb.get_ticket(obj['args'][0])[-1]['ticket']
-        url = '<a href="https://%s.codebasehq.com/projects/%s/tickets/%s">#%s</a>' %
-            (CONFIG.get("account"), CONIFG.get("repo"), obj['args'][0], obj['args'][0])
+        url = '<a href="https://%s.codebasehq.com/projects/%s/tickets/%s">#%s</a>' % (
+            CONFIG.get("account"), CONIFG.get("repo"), obj['args'][0], obj['args'][0])
         msg = "Ticket %s: %s (%s)" % (url, data["summary"], data["status"]['name'])
         api.send_action(obj['channel'], msg)
     except:
