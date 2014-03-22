@@ -2,5 +2,6 @@ database
 server_*
 auth.json
 cache.json
+config.json
 request.token
 *.pyc
