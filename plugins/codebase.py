@@ -27,19 +27,18 @@ class Codebase():
         return map(lambda i: i.get("event"), self.request("activity").json())
 
     def get_repos(self):
-        return map(lambda i: i.get("repository"), self.request("/%s/repositories").json() % CONIFG.get("repo"))
+        return map(lambda i: i.get("repository"), self.request("/%s/repositories").json() % CONFIG.get("repo"))
 
 cb = None
 
 def ticket(obj):
-    global CONFIG
     if len(obj['args']) < 1:
         api.send_action(obj['channel'], "Usage: !ticket <ticket num>")
         return
     try:
         data = cb.get_ticket(obj['args'][0])[-1]['ticket']
         url = '<a href="https://%s.codebasehq.com/projects/%s/tickets/%s">#%s</a>' % (
-            CONFIG.get("account"), CONIFG.get("repo"), obj['args'][0], obj['args'][0])
+            CONFIG.get("account"), CONFIG.get("repo"), obj['args'][0], obj['args'][0])
         msg = "Ticket %s: %s (%s)" % (url, data["summary"], data["status"]['name'])
         api.send_action(obj['channel'], msg)
     except:
@@ -52,7 +51,7 @@ def activity_loop():
         for event in data:
             print LAST, event['id']
             if event['id'] <= LAST: continue
-            url = ("https://%s.codebasehq.com" % CONIFG.get("account"))+HREF.findall(event['html_text'])[0]
+            url = ("https://%s.codebasehq.com" % CONFIG.get("account"))+HREF.findall(event['html_text'])[0]
             msg = '<a href="%s">%s</a>' % (url, event['title'])
 
             if event['type'] == "push":
