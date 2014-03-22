@@ -203,7 +203,7 @@ func web_upload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if len(results) {
+	if len(results) > 0 {
 		msg := fmt.Sprintf("%s uploaded %v files: %s", user.VStr("given_name"), len(results), strings.Join(results, ", "))
 		channel.SendRaw(json.Object{
 			"type":   "action",
