@@ -328,6 +328,13 @@ jt = {
     },
 
     onSocketClose: function (e) {
+        setInterval(function () {
+            $.ajax("/api/user", {
+                success: function () {
+                    window.location = "/"
+                }
+            })
+        }, 4000)
         $(".overlay").show()
         $("#navbar").hide();
         $("#conn-lost").show();
