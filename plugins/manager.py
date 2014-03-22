@@ -11,6 +11,7 @@ r = redis.Redis()
 class API(object):
     def __init__(self, url="http://localhost:5000"):
         self.url = CONFIG.get("url", url)
+        self.r = r
 
     def request(self, route, data):
         r = requests.post(self.url+"/api/"+route, data=json.dumps(data))
@@ -71,7 +72,10 @@ def loop():
                 cmd = data['raw'].split(" ", 1)[0][1:]
                 data['args'] = data['raw'].split(" ")[1:]
                 if cmd in HANDLE.commands.keys():
-                    HANDLE.commands[cmd](data)
+                    try:
+                        HANDLE.commands[cmd](data)
+                    except Exception as e:
+                        print e
             else:
                 for plugin in PLUGINS.values():
                     if hasattr(plugin, "handle"):
