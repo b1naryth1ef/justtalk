@@ -28,8 +28,23 @@ var CMDS map[string]CmdFunc = make(map[string]CmdFunc, 0)
 var DB *db.DB
 var RED *redis.Client
 
-func Bind(n string, f CmdFunc) {
-	CMDS[n] = f
+func Bind(f CmdFunc, v ...string) {
+	for _, item := range v {
+		CMDS[item] = f
+	}
+}
+
+func IsImage(s string) bool {
+	log.Printf("%s", s)
+	switch s {
+	case "image/gif":
+		return true
+	case "image/jpeg":
+		return true
+	case "image/png":
+		return true
+	}
+	return false
 }
 
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -138,23 +153,65 @@ func web_send_to(w http.ResponseWriter, r *http.Request) {
 }
 
 func web_upload(w http.ResponseWriter, r *http.Request) {
+	user := GetUserFromRequest(r)
+	if user == nil {
+		http.Error(w, "Yeah right!", 400)
+		return
+	}
+
 	err := r.ParseMultipartForm(100000)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	channel_name := r.URL.Query().Get("channel")
+	channel, check := CHANS[channel_name]
+	if !check {
+		http.Error(w, "Invalid Channel!", 400)
+		return
+	}
+
 	m := r.MultipartForm
 
 	files := m.File["file"]
+	results := make([]string, 0)
 	for i, _ := range files {
-		log.Printf("Parsing one file!")
+		key := fmt.Sprintf("file-%v", rand.Int63())
 		file, err := files[i].Open()
 		defer file.Close()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		raw, _ := ioutil.ReadAll(file)
+		RED.SetEx(key, time.Minute*60, string(raw))
+		RED.SetEx(key+"-type", time.Minute*60, files[i].Header.Get("Content-Type"))
+		log.Printf("Uploaded file %s", key)
+		log.Printf("%s", files[i].Header)
+
+		if IsImage(files[i].Header.Get("Content-Type")) {
+			u, c := CONNS[user.VStr("email")]
+			if !c {
+				http.Error(w, "Invalid User!", 400)
+				return
+			}
+
+			u.SendImage(channel, fmt.Sprintf("/api/file?key=%s", key))
+		} else {
+			results = append(results, fmt.Sprintf(`<a href="/api/file?key=%s">%s</a>`, key, files[i].Filename))
+		}
+	}
+
+	if len(results) {
+		msg := fmt.Sprintf("%s uploaded %v files: %s", user.VStr("given_name"), len(results), strings.Join(results, ", "))
+		channel.SendRaw(json.Object{
+			"type":   "action",
+			"action": msg,
+			"raw":    true,
+			"icon":   "upload",
+			"dest":   channel_name,
+		})
 	}
 }
 
@@ -206,6 +263,25 @@ func handleLogout(rw http.ResponseWriter, req *http.Request) {
 	http.Redirect(rw, req, "/", http.StatusMovedPermanently)
 }
 
+func web_file(rw http.ResponseWriter, req *http.Request) {
+	user := GetUserFromRequest(req)
+	if user == nil {
+		http.Error(rw, "Yeah right!", 400)
+		return
+	}
+
+	key := req.URL.Query().Get("key")
+	log.Printf("Getting file: `%s`", key)
+	if !RED.Exists(key).Val() {
+		http.Error(rw, "That file does not exist!", 404)
+		return
+	}
+
+	rw.Header().Set("Content-Type", RED.Get(key+"-type").Val())
+	log.Printf("Size: %s", len(RED.Get(key).Val()))
+	fmt.Fprintf(rw, "%s", RED.Get(key).Val())
+}
+
 func Run() {
 	setup_db()
 	setup_redis()
@@ -216,11 +292,12 @@ func Run() {
 	http.HandleFunc("/api/send", web_send_to)
 	http.HandleFunc("/api/upload", web_upload)
 	http.HandleFunc("/api/user", web_user)
+	http.HandleFunc("/api/file", web_file)
 	http.HandleFunc("/logout", handleLogout)
 	http.HandleFunc("/authorize", handleAuthorize)
 	http.HandleFunc("/oauth2callback", handleOAuth2Callback)
 
-	Bind("join", func(u *Connection, c *Channel, o json.Object, args []string) {
+	Bind(func(u *Connection, c *Channel, o json.Object, args []string) {
 		if len(args) < 2 {
 			u.SendS(ChatError{Msg: "Usage: /join <channel>"})
 			return
@@ -233,9 +310,9 @@ func Run() {
 		}
 
 		CHANS[chan_name].Join(u)
-	})
+	}, "join", "j")
 
-	Bind("quit", func(u *Connection, c *Channel, o json.Object, args []string) {
+	Bind(func(u *Connection, c *Channel, o json.Object, args []string) {
 		if c.Name == "lobby" {
 			u.SendS(ChatError{
 				Msg: "You cannot leave the lobby!",
@@ -244,9 +321,9 @@ func Run() {
 		}
 
 		c.Quit(u, "%s has left the channel")
-	})
+	}, "quit", "q")
 
-	Bind("delete", func(u *Connection, c *Channel, o json.Object, args []string) {
+	Bind(func(u *Connection, c *Channel, o json.Object, args []string) {
 		if c.Name == "lobby" {
 			u.Send(json.Object{
 				"type": "error",
@@ -255,9 +332,24 @@ func Run() {
 			return
 		}
 		c.Delete()
-	})
+	}, "Delete")
 
-	Bind("cset", func(u *Connection, c *Channel, o json.Object, args []string) {
+	Bind(func(u *Connection, c *Channel, o json.Object, args []string) {
+		if len(args) < 2 {
+			u.SendS(ChatError{Msg: "Usage: /action <action>"})
+			return
+		}
+		c.SendRaw(json.Object{
+			"type":   "action",
+			"action": strings.Join(args[1:], " "),
+			"raw":    false,
+			"icon":   "exclamation-circle",
+			"dest":   c.Name,
+			"color":  "red",
+		})
+	}, "action", "act", "a")
+
+	Bind(func(u *Connection, c *Channel, o json.Object, args []string) {
 		resp := make(json.Object)
 		if len(args) < 3 {
 			u.SendS(ChatError{Msg: "Usage: /cset <option> <value>"})
@@ -266,6 +358,11 @@ func Run() {
 
 		resp.Set("type", "updatechannel")
 		resp.Set("name", c.Name)
+
+		if c.Name == "lobby" {
+			u.SendS(ChatError{Msg: "Cannot edit the lobby!"})
+			return
+		}
 
 		if args[1] == "topic" {
 			c.Topic = string(blackfriday.MarkdownCommon([]byte(sanitize.HTML(strings.Join(args[2:], " ")))))
@@ -293,7 +390,7 @@ func Run() {
 		c.SendRaw(resp)
 		c.Save()
 
-	})
+	}, "cset", "c")
 
 	CHANS["lobby"] = NewChannel("lobby", "The Lobby", "Sit down and have a cup of tea", "https://lh5.ggpht.com/LkzyZWEvMWSym5etth9H3a2vMCxUZFNW99seYYF6XPKIGNvY3m1YzTe0QCDMQB9G0QM=w300")
 

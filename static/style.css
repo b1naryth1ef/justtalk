@@ -408,6 +408,10 @@ h6,
   word-wrap: break-word;*/
 }
 
+.message-box .embed {
+  max-width: 99%;
+}
+
 .chat-name {
   display: table-cell;
   width: 14%;

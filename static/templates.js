@@ -2,7 +2,7 @@ var TEMPLATES = {
     CHAT_MESSAGE: _.template(
         '<div class="message-box <%= obj.highlight ? "highlight" : "" %>">'+
         '<img src="<%= obj.avatar %>" class="img-rounded chat-avatar"><b><%= obj.name %></b>'+
-        '<p style="float: right;"><%= time %><br /><span><%= obj.msg %></span></div>'),
+        '<p style="<% if (!obj.nofloat) { %>float: right; <% } %>"><%= time %><br /><span><%= obj.msg %></span></div>'),
 
     CHAT_ACTION: _.template(
         '<div class="message-box message-box-action">'+

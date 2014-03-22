@@ -39,7 +39,7 @@ cb = None
 
 def format_ticket(dest, id):
     data = cb.get_ticket(id)[-1]['ticket']
-    url = '<a href="https://%s.codebasehq.com/projects/%s/tickets/%s">#%s</a>' % (
+    url = '<a target="_blank" href="https://%s.codebasehq.com/projects/%s/tickets/%s">#%s</a>' % (
         CONFIG.get("account"), CONFIG.get("repo"), id, id)
     msg = "Ticket %s: %s (%s)" % (url, data["summary"], data["status"]['name'])
     api.send_action(dest, msg, icon="ticket")
@@ -47,7 +47,7 @@ def format_ticket(dest, id):
 def format_commit(dest, data, repo):
     url = "https://spoton.codebasehq.com/projects/%s/repositories/%s/commit/%s" % (
         CONFIG.get("repo"), repo, data['ref'])
-    link = '<a href="%s">%s</a>' % (url, data['ref'][:10])
+    link = '<a target="_blank" href="%s">%s</a>' % (url, data['ref'][:10])
     msg = "Commit %s: %s (%s)" % (link, data['message'], data['author_email'])
     icon = "code-fork" if "merge branch" in data['message'].lower() else "code"
     api.send_action(dest, msg, icon=icon)
@@ -70,7 +70,7 @@ def activity_loop():
             data = HREF.findall(event['html_text'])
             if not len(data): continue
             url = ("https://%s.codebasehq.com" % CONFIG.get("account"))+data[0]
-            msg = '<a href="%s">%s</a>' % (url, event['title'])
+            msg = '<a target="_blank" href="%s">%s</a>' % (url, event['title'])
 
             if event['type'] == "push":
                 icon = "upload"

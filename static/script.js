@@ -9,7 +9,7 @@ function drupload(files) {
     }
 
     var xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/upload');
+    xhr.open('POST', '/api/upload?channel='+view_main.getCurrentChannel().name);
     xhr.onload = function () {
       if (xhr.status != 200) {
         alert("Uh Oh! Something went wonkers!");
@@ -123,6 +123,13 @@ view_main = {
             })
         })
 
+        $(document).on("drop", function(e) {
+            drupload(e.originalEvent.dataTransfer.files);
+            e.preventDefault()
+            e.stopPropagation()
+        })
+
+        $(document).on("dragover", function(e) { e.preventDefault(); })
     },
 
     // Renders the left hand channel list
@@ -234,7 +241,7 @@ view_main = {
         if (data.type == "action") {
             view_main.addAction(data.dest, {
                 obj: data,
-                color: null
+                color: data.color || null
             })
         }
 

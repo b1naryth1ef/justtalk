@@ -103,6 +103,23 @@ func (c *Connection) ActionMsg(ch *Channel, o json.Object) {
 	ch.SendRaw(packet)
 }
 
+func (c *Connection) SendImage(ch *Channel, url string) {
+	packet := json.Object{
+		"avatar":   c.Avatar,
+		"username": c.Username,
+		"name":     c.Name,
+		"msg":      fmt.Sprintf(`<img class="embed" src="%s" />`, url),
+		"raw":      url,
+		"dest":     ch.Name,
+		"type":     "msg",
+		"nofloat":  true,
+	}
+
+	data, _ := packet.Dump()
+	RED.Publish("justtalk-"+ch.Name, string(data))
+	ch.SendRaw(packet)
+}
+
 func (c *Connection) ActionJoin(o json.Object) {
 	var ch *Channel
 	var has bool
