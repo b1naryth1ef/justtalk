@@ -67,9 +67,9 @@ def loop():
     for msg in sub.listen():
         if msg['type'] == "pmessage":
             data = json.loads(msg['data'])
-            if data['msg'].startswith("!"):
-                cmd = data['msg'].split(" ", 1)[0][1:]
-                data['args'] = data['msg'].split(" ")[1:]
+            if data['raw'].startswith("!"):
+                cmd = data['raw'].split(" ", 1)[0][1:]
+                data['args'] = data['raw'].split(" ")[1:]
                 if cmd in HANDLE.commands.keys():
                     HANDLE.commands[cmd](data)
             else:

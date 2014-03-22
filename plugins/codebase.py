@@ -1,9 +1,12 @@
 import requests, json, thread, time, re
 from manager import API
 
-HREF = re.compile("""href=[\'"]?([^\'" >]+)""")
+HREF = re.compile(r"""href=[\'"]?([^\'" >]+)""")
+TICKET = re.compile(r'#([0-9]+)')
+HASH = re.compile(r'[0-9a-f]{5,40}')
 
 CONFIG = None
+CACHED_REPOS = None
 api = API()
 
 class Codebase():
@@ -21,28 +24,42 @@ class Codebase():
         return r
 
     def get_ticket(self, id):
-        return self.request("backend/tickets", query="id:%s" % id).json()
+        return self.request("%s/tickets" % CONFIG.get("repo"), query="id:%s" % id).json()
 
     def get_activity(self):
         return map(lambda i: i.get("event"), self.request("activity").json())
 
     def get_repos(self):
-        return map(lambda i: i.get("repository"), self.request("/%s/repositories").json() % CONFIG.get("repo"))
+        return map(lambda i: i.get("repository"), self.request("/%s/repositories" % CONFIG.get("repo")).json())
+
+    def get_commit(self, repo, ref):
+        return self.request("/%s/%s/commits/%s" % (CONFIG.get("repo"), repo, ref)).json()
 
 cb = None
 
+def format_ticket(dest, id):
+    data = cb.get_ticket(id)[-1]['ticket']
+    url = '<a href="https://%s.codebasehq.com/projects/%s/tickets/%s">#%s</a>' % (
+        CONFIG.get("account"), CONFIG.get("repo"), id, id)
+    msg = "Ticket %s: %s (%s)" % (url, data["summary"], data["status"]['name'])
+    api.send_action(dest, msg, icon="ticket")
+
+def format_commit(dest, data, repo):
+    url = "https://spoton.codebasehq.com/projects/%s/repositories/%s/commit/%s" % (
+        CONFIG.get("repo"), repo, data['ref'])
+    link = '<a href="%s">%s</a>' % (url, data['ref'][:10])
+    msg = "Commit %s: %s (%s)" % (link, data['message'], data['author_email'])
+    icon = "code-fork" if "merge branch" in data['message'].lower() else "code"
+    api.send_action(dest, msg, icon=icon)
+
 def ticket(obj):
     if len(obj['args']) < 1:
-        api.send_action(obj['channel'], "Usage: !ticket <ticket num>")
+        api.send_action(obj['dest'], "Usage: !ticket <ticket num>")
         return
     try:
-        data = cb.get_ticket(obj['args'][0])[-1]['ticket']
-        url = '<a href="https://%s.codebasehq.com/projects/%s/tickets/%s">#%s</a>' % (
-            CONFIG.get("account"), CONFIG.get("repo"), obj['args'][0], obj['args'][0])
-        msg = "Ticket %s: %s (%s)" % (url, data["summary"], data["status"]['name'])
-        api.send_action(obj['channel'], msg)
+        format_ticket(obj['args'][0], obj['dest'])
     except:
-        api.send_action(obj['channel'], "Woahh... Something went wrong while processing your request!")
+        api.send_action(obj['dest'], "Woahh... Something went wrong while processing your request!")
 
 def activity_loop():
     LAST = None
@@ -67,14 +84,30 @@ def activity_loop():
         time.sleep(30)
 
 def init(config, handle):
-    global CONFIG, cb
+    global CONFIG, cb, CACHED_REPOS
     CONFIG = config
     handle.bind("ticket", ticket)
 
     cb = Codebase(CONFIG.get("username"), CONFIG.get("password"))
+    CACHED_REPOS = cb.get_repos()
 
     thread.start_new_thread(activity_loop, ())
 
-def handle(data):
-    pass
+def try_get_commit(zhash, data, repo):
+    try:
+        com = cb.get_commit(repo['permalink'], zhash)
+    except: return
+    if not len(com): return
+    format_commit(data['dest'], com[0]['commit'], repo['permalink'])
 
+
+def handle(data):
+    has_any_ticket = TICKET.findall(data['raw'])
+    for item in has_any_ticket:
+        if len(item) >= 4:
+            format_ticket(data['dest'], item)
+
+    has_any_hash = HASH.findall(data['raw'])
+    for zhash in has_any_hash:
+        for repo in CACHED_REPOS:
+            thread.start_new_thread(try_get_commit, (zhash, data, repo))
