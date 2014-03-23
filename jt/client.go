@@ -18,6 +18,7 @@ type Connection struct {
 	Avatar   string
 	Channels []*Channel
 	Limit    int
+	Afk      bool
 }
 
 func (c *Connection) LoadUser(u json.Object) {
@@ -47,6 +48,7 @@ func (c *Connection) ActionHello(o json.Object) {
 
 	CHANS["lobby"].Join(c)
 	CONNS[c.Username] = c
+	c.Afk = false
 
 	c.Send(json.Object{
 		"type":    "hello",
@@ -147,6 +149,21 @@ func (c *Connection) ActionJoin(o json.Object) {
 	}
 }
 
+func (c *Connection) ActionAfk(o json.Object) {
+	if !o.Has("state") {
+		return
+	}
+
+	c.Afk = o.Value("state").(bool)
+	for _, v := range CONNS {
+		v.Send(json.Object{
+			"type":  "afk",
+			"user":  c.Username,
+			"state": c.Afk,
+		})
+	}
+}
+
 func (c *Connection) Disconnect(msg string) {
 	delete(CONNS, c.Username)
 	for _, v := range c.Channels {
@@ -197,6 +214,8 @@ func (c *Connection) ReadLoop() {
 			c.ActionMsg(dest, obj)
 		} else if action == "join" {
 			c.ActionJoin(obj)
+		} else if action == "afk" {
+			c.ActionAfk(obj)
 		}
 	}
 }

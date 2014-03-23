@@ -38,10 +38,6 @@ h6,
   border-radius: 0 !important;
 }
 
-#middle-input {
-  margin-bottom: 10px;
-}
-
 
 /* SOME FUCK ADDED THESE */
 
@@ -87,60 +83,6 @@ h6,
   position: absolute;
   left: 0;
   right: 0;
-}
-
-.sidebar > h2 {
-  text-align: center;
-  line-height: 0.9em;
-  margin-top: 0.3em;
-}
-
-#overview {
-  width: 400px;
-  margin: 10% auto 30% auto;
-  padding: 10px;
-  background: #E7E9ED;
-  border: 2px solid #DDD;
-}
-
-#overview label { width: 100px; text-align: left}
-#overview .controls { margin-left: 100px; }
-
-#overview ul li {
-  display: inline-block;
-  padding: 10px;
-  margin: 0px 10px;
-  text-align: center;
-  width: 130px;
-}
-
-#overview ul li:hover {
-  background: #A7DBD8;
-  cursor: pointer;
-  border-radius: 5px;
-}
-
-#overview ul li img {
-  height: 75px;
-}
-
-#overview li span {
-  display: block;
-  font-weight: bold;
-}
-
-#overview #home_parent {
-  height: 40px;
-  width: 100%;
-}
-
-#overview form #loading_image{
-  position: fixed;
-  margin-left: 10px;
-}
-
-#chrome-notifications-allow-button {
-  white-space: normal;
 }
 
 #left-box {
@@ -202,103 +144,6 @@ h6,
   opacity: 0.8;
 }
 
-#channels {
-  overflow: auto;
-  width: 100%;
-}
-
-#channels > .channel,
-#add-channel-button {
-  padding: 5% 5% 5% 20%;
-  color: #333333;
-  border-bottom: 1px solid #CCCCCC;
-}
-
-#channels > .channel .close-button {
-  display: block;
-  color: #333;
-  font: bold 20px Arial;
-  text-shadow: 0 1px 0 whiteSmoke;
-  line-height: 19px;
-  float: right;
-  opacity: 0.3;
-  width: 24px;
-  text-align: center;
-  cursor: pointer;
-  margin-left: 5px;
-  visibility: hidden;
-}
-
-#channels > .channel:hover .close-button {
-  visibility: visible;
-}
-
-#channels > .channel.active .close-button {
-  color: white;
-  text-shadow: 0 1px 0 black;
-}
-
-#channels > .channel .close-button:hover {
-  opacity: 0.8;
-}
-
-#channels > .channel:not(.active):hover{
-  background: #A7DBD8;
-  color: #444444;
-  cursor: pointer;
-}
-
-#channels > .active{
-  background: #315857;
-  color: whiteSmoke;
-  font-weight: bold;
-}
-
-.channel .unread,
-.channel .unread-mentions {
-  padding: 2px 6px;
-  margin-top: -2px;
-  color: whiteSmoke;
-  font-weight: bold;
-  border-radius: 4px;
-  -webkit-border-radius: 4px;
-  float: right;
-  display: none;
-}
-
-.channel .unread {
-  background: #980000;
-}
-
-.channel .unread-mentions {
-  background: #0B2666;
-  margin-right: 0.3em;
-}
-
-.slide {
-  position: fixed;
-  width: 0;
-  height: 0;
-}
-
-#logo {
-  text-align: center;
-}
-
-#logo > img {
-  margin-top: 10px;
-}
-
-#add-channel-button #channelname {
-  width: 110px;
-  margin: 0;
-  font-size: 12px;
-  padding-top: 0px;
-  padding-bottom: 0px;
-}
-
-/* Here are the styles for the chat window */
-
 #chat-window  {
   min-height: 100%;
   height: 100%;
@@ -308,18 +153,6 @@ h6,
   -moz-box-sizing: border-box; /* for Mozilla */
   -webkit-box-sizing: border-box; /* for WebKit */
   -ms-box-sizing: border-box; /* for IE8 */
-}
-
-#chat-bar {
-  border-right: 1px solid #666666;
-}
-
-#chat-bar, #user-bar{
-  top: 0;
-  height: 34px;
-  background: #434950;
-  color: #eee;
-  overflow: hidden;
 }
 
 .titlebar{
@@ -490,57 +323,8 @@ div.embed-toggle {
 
 .user-list-item {
   margin-bottom: 10px;
+  font-size: 20px;
 }
-
-.userlist_user {
-  border-bottom: 1px solid #CCCCCC;
-  display: table;
-  height: 31px;
-  width: 100%;
-}
-
-.userlist_user_activity{
-  width: 13%;
-  display: table-cell;
-  padding: 2%;
-  background: #EFEFEF;
-  text-align: center;
-  border-right: 1px solid #DDDDDD;
-}
-
-.userlist_user_active, .userlist_user_idle{
-  height: 10px;
-  width: 10px;
-  display: block;
-  background-repeat: no-repeat;
-}
-
-.userlist_user_active{
-  background-image: url('/assets/images/active.png');
-}
-
-.userlist_user_idle{
-  background-image: url('/assets/images/idle.png');
-}
-
-.userlist_user_info{
-  display: table-cell;
-  width: 87%;
-  padding: 3% 0% 3% 5%;
-}
-
-.userlist_user_name{
-  font-weight: bold;
-  width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.userlist_user_time{
-  margin-left: 5px;
-  color: #666666;
-}
-
 
 .body-error {
   opacity: 0.1;
@@ -548,28 +332,33 @@ div.embed-toggle {
 /*  background: darkgray;*/
 }
 
-
-/* Dragging Stuff */
 .overlay{
-    background: transparent url(images/overlay.png) repeat top left;
-    position: fixed;
-    top: 0px;
-    bottom: 0px;
-    left: 0px;
-    right: 0px;
-    z-index: 100;
+  background: transparent url(images/overlay.png) repeat top left;
+  position: fixed;
+  top: 0px;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+  z-index: 100;
 }
 
 .overlay-box{
-    height: 256px;
-    width: 256;
-    position:absolute;
-    top:50%;
-    left:50%;
-    z-index:101;
+  height: 256px;
+  width: 256;
+  position:absolute;
+  top:50%;
+  left:50%;
+  z-index:101;
 }
-
 
 .highlight {
   background-color: #fcf8e3;
+}
+
+.user-active {
+  box-shadow: 0px 0px 10px #3c763d;
+}
+
+.user-afk {
+  box-shadow: 0px 0px 10px #8a6d3b;
 }

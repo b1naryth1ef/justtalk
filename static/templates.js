@@ -1,8 +1,12 @@
 var TEMPLATES = {
+
+    CHAT_CONTENT: _.template(
+        '<p style="<% if (!obj.nofloat) { %>float: right; <% } %>"><%= time %><br /><span><%= obj.msg %></span></p>'),
+
     CHAT_MESSAGE: _.template(
-        '<div class="message-box <%= obj.highlight ? "highlight" : "" %>">'+
+        '<div data-author="<%= obj.username %>" class="message-box <%= obj.highlight ? "highlight" : "" %>">'+
         '<img src="<%= obj.avatar %>" class="img-rounded chat-avatar"><b><%= obj.name %></b>'+
-        '<p style="<% if (!obj.nofloat) { %>float: right; <% } %>"><%= time %><br /><span><%= obj.msg %></span></div>'),
+        '<%= content %></div>'),
 
     CHAT_ACTION: _.template(
         '<div class="message-box message-box-action">'+
@@ -18,7 +22,8 @@ var TEMPLATES = {
 
     USER_RIGHT: _.template(
         '<div class="user-list-item">'+
-        '<img src="<%= obj.avatar %>" class="img-rounded" style="margin-right: 5px; height: 30px; vertical-align: middle">'+
+        '<img src="<%= obj.avatar %>" class="img-rounded <%= obj.afk ? "user-afk" : "user-active" %>" '+
+        'style="margin-right: 5px; height: 45px; vertical-align: middle">'+
         '<span><%= obj.name %></span><br /></div>'),
 
     NOTIFICATION: _.template("<%- username %>: <%= msg %><% if (count) { %>"+

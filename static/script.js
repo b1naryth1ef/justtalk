@@ -2,53 +2,127 @@ function isNumber(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
-function drupload(files) {
-    var formData = new FormData();
-    for (var i = 0; i < files.length; i++) {
-      formData.append('file', files[i]);
-    }
 
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/upload?channel='+view_main.getCurrentChannel().name);
-    xhr.onload = function () {
-      if (xhr.status != 200) {
-        alert("Uh Oh! Something went wonkers!");
-      }
-    };
 
-    xhr.send(formData);
-}
-
-view_main = {
+var jt = {
     channels: {},
     title_flash: null,
     title_origin: null,
     sent_history: [],
     history_point: 0,
     highlight: new RegExp(/@([a-zA-Z0-9]+)/g),
+    conn: null,
+    user: {
+        username: "",
+        name: "",
+        authed: false,
+        avatar: ""
+    },
+    view: jt,
+    afk_timer: null,
+    is_afk: false,
+
+    // If the user is authed, we open a new websocket, otherwise they
+    //  are shown the login modal.
+    init: function() {
+        $.ajax("/api/user", {
+            success: function(data) {
+                if (!data.success) {
+                    $("#login").modal("show")
+                    $("#login-button").click(function (e) {
+                        window.location = "/authorize"
+                    })
+                } else {
+                    jt.setupWebSocket()
+                }
+            }
+        })
+
+        // Render everything else
+        jt.render()
+    },
+
+    // Send a object over the websocket
+    send: function(obj) {
+        jt.conn.send(JSON.stringify(obj))
+    },
+
+    // Display a warning when the socket is closed, and autorefresh
+    onSocketClose: function (e) {
+        setInterval(function () {
+            $.ajax("/api/user", {
+                // If we are successful, reload
+                success: function () {
+                    window.location = "/"
+                }
+            })
+        }, 4000)
+        $(".overlay").show()
+        $("#navbar").hide();
+        $("#conn-lost").show();
+    },
+
+    // Handle messages
+    onSocketMessage: function (e) {
+        var obj = JSON.parse(e.data);
+        switch (obj.type) {
+            case "hello":
+                if (obj.success) {
+                    if (localStorage.getItem("channels")) {
+                        jt.send({
+                            "type": "join",
+                            "channels": JSON.parse(localStorage.getItem("channels"))
+                        })
+                    }
+                    jt.user = obj.user
+                    jt.user.authed = true;
+                    $("#chat-image").attr("src", jt.user.avatar)
+                    $("#login").modal("hide")
+                } else {
+                    alert("Could not login: "+obj.msg);
+                }
+                break;
+        }
+
+        jt.handle(obj)
+    },
+
+    setupWebSocket: function() {
+        if (window["WebSocket"]) {
+            var port = window.location.port ? "" : "5000"
+            jt.conn = new WebSocket("ws://"+window.location.host+":"+port+"/socket");
+            jt.conn.onclose = jt.onSocketClose;
+            jt.conn.onmessage = jt.onSocketMessage;
+            jt.conn.onopen = function () {
+                jt.send({"type": "hello"})
+            }
+        } else {
+            alert("Your browser does not have websocket support :(");
+        }
+    },
 
     flashTitle: function(text) {
-        view_main.title_origin = document.title
-        clearInterval(view_main.title_flash)
-        view_main.title_flash = setInterval(function() {
+        jt.title_origin = document.title
+        clearInterval(jt.title_flash)
+        jt.title_flash = setInterval(function() {
             if (window.document.hasFocus()) {
-                document.title = view_main.title_origin
-                clearInterval(view_main.title_flash)
+                document.title = jt.title_origin
+                clearInterval(jt.title_flash)
                 return
             }
-            if (document.title == view_main.title_origin) {
+            if (document.title == jt.title_origin) {
                 document.title = text
             } else {
-                document.title = view_main.title_origin
+                document.title = jt.title_origin
             }
         }, 1000);
     },
 
     // Gets the currently active channel
     getCurrentChannel: function () {
-        for (i in view_main.channels) {
-            if (view_main.channels[i].selected) {
-                return view_main.channels[i]
+        for (i in jt.channels) {
+            if (jt.channels[i].selected) {
+                return jt.channels[i]
             }
         }
     },
@@ -57,16 +131,16 @@ view_main = {
     onSendMessage: function() {
         var text = $("#middle-input-text").val()
 
-        view_main.history_point = 0
-        view_main.sent_history.unshift(text)
-        if (view_main.sent_history.length > 250) {
-            view_main.sent_history.pop(-1)
+        jt.history_point = 0
+        jt.sent_history.unshift(text)
+        if (jt.sent_history.length > 250) {
+            jt.sent_history.pop(-1)
         }
 
         jt.send({
             "type": "msg",
             "msg": text,
-            "dest": view_main.getCurrentChannel().name
+            "dest": jt.getCurrentChannel().name
         })
         $("#middle-input-text").val("")
     },
@@ -76,33 +150,33 @@ view_main = {
         // Input
         $('#middle-input-text').keydown(function(e) {
             if(e.which == 13) {
-                view_main.onSendMessage();
+                jt.onSendMessage();
             }
 
             // Handles up/down arrow history
             if (e.which == 38 || e.which == 40) { 
                 e.preventDefault();
 
-                if (e.which == 38) view_main.history_point++
-                if (e.which == 40) view_main.history_point--
+                if (e.which == 38) jt.history_point++
+                if (e.which == 40) jt.history_point--
 
-                if (view_main.history_point == 250 || view_main.history_point > view_main.sent_history.length) {
-                    view_main.history_point = view_main.sent_history.length
+                if (jt.history_point == 250 || jt.history_point > jt.sent_history.length) {
+                    jt.history_point = jt.sent_history.length
                     return
-                } else if (view_main.history_point < 1) {
+                } else if (jt.history_point < 1) {
                     $("#middle-input-text").val("")
-                    view_main.history_point = 0
+                    jt.history_point = 0
                     return
                 }
                 
-                $("#middle-input-text").val(view_main.sent_history[view_main.history_point-1])
+                $("#middle-input-text").val(jt.sent_history[jt.history_point-1])
             }
         });
 
         // Changing channels
         $("#left-box").delegate(".left-box-element", "click", function (e) {
-            view_main.select($(this).data("name"))
-            view_main.renderUsers()
+            jt.select($(this).data("name"))
+            jt.renderUsers()
         })
 
         if (window.webkitNotifications.checkPermission() == 0) {
@@ -115,28 +189,49 @@ view_main = {
 
         // Clears notifications on window focus gain
         $(window).focus(function () {
-            _.each(view_main.channels, function (v) {
+            _.each(jt.channels, function (v) {
                 if (v.selected) {
                     if (v.notification) v.notification.close();
                     v.unread = 0
                 }
             })
+
+            // Clear afk timer
+            if (jt.afk_timer) clearTimeout(jt.afk_timer)
+
+            // Un-afk
+            if (jt.is_afk) {
+                jt.send({
+                    "type": "afk",
+                    "state": false
+                })
+            }
+        })
+
+        $(window).blur(function () {
+            // After 10 minutes set this user as afk
+            jt.afk_timer = setTimeout(function () {
+                jt.send({
+                    "type": "afk",
+                    "state": true
+                })
+                jt.is_afk = true
+            }, 60000 * 10)
         })
 
         $(document).on("drop", function(e) {
-            drupload(e.originalEvent.dataTransfer.files);
             e.preventDefault()
             e.stopPropagation()
+            jt.drupload(e.originalEvent.dataTransfer.files);
         })
 
-        $(document).on("dragover", function(e) { e.preventDefault(); })
+        $(document).on("dragover", function(e) { e.preventDefault(); console.log("ding")})
     },
 
     // Renders the left hand channel list
     renderChannels: function () {
         $("#left-box").empty()
-        _.each(view_main.channels, function(v, i) {
-            console.log(v)
+        _.each(jt.channels, function(v, i) {
             $("#left-box").append(TEMPLATES.CHANNEL_LEFT({
                 obj: v
             }))
@@ -146,7 +241,7 @@ view_main = {
     // Renders the right hand user list
     renderUsers: function() {
         $("#users-online-now").empty()
-        _.each(view_main.getCurrentChannel().members, function(user, y) {
+        _.each(jt.getCurrentChannel().members, function(user, y) {
             $("#users-online-now").append(TEMPLATES.USER_RIGHT({
                 obj: user
             }))
@@ -155,7 +250,7 @@ view_main = {
 
     // Changes the selected channel
     select: function(chan) {
-        _.each(view_main.channels, function(channel, x) {
+        _.each(jt.channels, function(channel, x) {
             channel.selected = (x == chan)
             var sel = $("#channel-"+channel.name)
 
@@ -179,13 +274,13 @@ view_main = {
     //  in some way.
     pingChannel: function(chan, data) {
         $("#chat-contents").scrollTop($("#chat-contents")[0].scrollHeight);
-        var channel = view_main.channels[chan];
+        var channel = jt.channels[chan];
 
         if (data && !window.document.hasFocus()) {
             if (data.msg) {
                 channel.unread += 1
             }
-            view_main.flashTitle("Actvity in "+view_main.channels[chan].title)
+            jt.flashTitle("Actvity in "+jt.channels[chan].title)
 
             if (window.webkitNotifications.checkPermission() == 0) {
                 channel.notification = new Notification(channel.title, {
@@ -208,7 +303,7 @@ view_main = {
     // Adds a channel action
     addAction: function(dest, data) {
         $("#channel-"+dest).append(TEMPLATES.CHAT_ACTION(data))
-        view_main.pingChannel(dest)
+        jt.pingChannel(dest)
     },
 
     // Handles incoming websocket data
@@ -218,7 +313,7 @@ view_main = {
 
             // Highlight @ mentions
             if (data.username != jt.user.username) {
-                var hilights = data.msg.match(view_main.highlight)
+                var hilights = data.msg.match(jt.highlight)
                 if (hilights) {
                     for (i in hilights) {
                         if (hilights[i].toLowerCase() == "@"+jt.user.name.toLowerCase()) {
@@ -229,31 +324,50 @@ view_main = {
             }
 
             // Bold all highlights
-            data.msg = data.msg.replace(view_main.highlight, "<b>$&</b>")
-
-            $("#channel-"+data.dest).append(TEMPLATES.CHAT_MESSAGE({
+            data.msg = data.msg.replace(jt.highlight, "<b>$&</b>")
+            content = TEMPLATES.CHAT_CONTENT({
                 obj: data,
-                time: "" //moment().format("X")
-            }))
-            view_main.pingChannel(data.dest, data)
+                time: ""
+            })
+
+            if (false) { //($("#channel-"+data.dest+" .message-box").last().data("author") == data.username) {
+                $("#channel-"+data.dest+" .message-box").last().append(content)
+            } else {
+                $("#channel-"+data.dest).append(TEMPLATES.CHAT_MESSAGE({
+                    obj: data,
+                    content: content
+                }))
+            }
+            jt.pingChannel(data.dest, data)
+        }
+
+        if (data.type == "afk") {
+            _.each(jt.channels, function(v, k) {
+                _.each(v.members, function(y, x) {
+                    if (y.username == data.user) {
+                        y.afk = data.state
+                    }
+                })
+            })
+            jt.renderUsers()
         }
 
         if (data.type == "action") {
-            view_main.addAction(data.dest, {
+            jt.addAction(data.dest, {
                 obj: data,
                 color: data.color || null
             })
         }
 
         if (data.type == "quit") {
-            if (!view_main.channels[data.name]) {return}
+            if (!jt.channels[data.name]) {return}
             // todo functionaize
-            for (i in view_main.channels[data.name].members) {
-                if (view_main.channels[data.name].members[i].username == data.user) {
-                    view_main.channels[data.name].members.splice(i, 1)
-                    view_main.renderChannels()
-                    view_main.renderUsers()
-                    view_main.addAction(data.name, {
+            for (i in jt.channels[data.name].members) {
+                if (jt.channels[data.name].members[i].username == data.user) {
+                    jt.channels[data.name].members.splice(i, 1)
+                    jt.renderChannels()
+                    jt.renderUsers()
+                    jt.addAction(data.name, {
                         obj: {
                             action: data.user + " has left the channel",
                             icon: "sign-out"
@@ -265,33 +379,32 @@ view_main = {
             }
 
             if (data.user == jt.user.username) {
-                console.log("Quitting")
-                delete view_main.channels[data.name]
+                delete jt.channels[data.name]
 
-                if (view_main.channels) {
-                    for (chan in view_main.channels) {
-                        view_main.select(chan)
+                if (jt.channels) {
+                    for (chan in jt.channels) {
+                        jt.select(chan)
                         break;
                     }
                 }
                 $("#channel-"+data.name).remove()
-                view_main.renderChannels()
-                view_main.renderUsers()
+                jt.renderChannels()
+                jt.renderUsers()
             }
         }
 
         if (data.type == "join") {
-            if (!view_main.channels[data.name]) {return}
+            if (!jt.channels[data.name]) {return}
             if (data.user == jt.user.username) {return}
-            for (i in view_main.channels[data.name].members) {
-                if (view_main.channels[data.name].members[i].username == data.user.username) {
+            for (i in jt.channels[data.name].members) {
+                if (jt.channels[data.name].members[i].username == data.user.username) {
                     return
                 }
             }
-            view_main.channels[data.name].members.push(data.user)
-            view_main.renderChannels()
-            view_main.renderUsers()
-            view_main.addAction(data.name, {
+            jt.channels[data.name].members.push(data.user)
+            jt.renderChannels()
+            jt.renderUsers()
+            jt.addAction(data.name, {
                 obj: {
                     action: data.user.username + " has joined the channel",
                     icon: "sign-in"
@@ -302,7 +415,7 @@ view_main = {
         }
 
         if (data.type == "error") {
-            view_main.addAction(view_main.getCurrentChannel().name, {
+            jt.addAction(jt.getCurrentChannel().name, {
                 obj: {
                     action: data.msg,
                     icon: "warning"
@@ -314,17 +427,17 @@ view_main = {
         if (data.type == "channel") {
             $("#chat-contents").append('<div style="display: none" id="channel-'+data.name+'"></div>')
             data.unread = 0
-            view_main.channels[data.name] = data
-            view_main.select(data.name)
-            view_main.renderChannels()
-            view_main.renderUsers()
-            localStorage.setItem("channels", JSON.stringify(_.keys(view_main.channels)))
+            jt.channels[data.name] = data
+            jt.select(data.name)
+            jt.renderChannels()
+            jt.renderUsers()
+            localStorage.setItem("channels", JSON.stringify(_.keys(jt.channels)))
         }
 
         if (data.type == "updatechannel") {
-            view_main.channels[data.name][data.k] = data.v
-            view_main.renderChannels()
-            view_main.addAction(data.name, {
+            jt.channels[data.name][data.k] = data.v
+            jt.renderChannels()
+            jt.addAction(data.name, {
                 obj: {
                     action: data.a,
                     icon: "pencil"
@@ -334,103 +447,36 @@ view_main = {
         }
 
         if (data.type == "channelclose") {
-            delete view_main.channels[data.name]
+            delete jt.channels[data.name]
 
-            if (view_main.channels) {
-                for (chan in view_main.channels) {
-                    view_main.select(chan)
+            if (jt.channels) {
+                for (chan in jt.channels) {
+                    jt.select(chan)
                     break;
                 }
             }
 
             $("#channel-"+data.name).remove()
-            view_main.renderChannels()
-            view_main.renderUsers()
+            jt.renderChannels()
+            jt.renderUsers()
         }
-    }
-}
-
-// No, not justin... never justin...
-jt = {
-    conn: null,
-    user: {
-        username: "",
-        name: "",
-        authed: false,
-        avatar: ""
     },
-    view: view_main,
 
-    init: function() {
-        $.ajax("/api/user", {
-            success: function(data) {
-                if (!data.success) {
-                    $("#login").modal("show")
-                    $("#login-button").click(function (e) {
-                        window.location = "/authorize"
-                    })
-                } else {
-                    jt.setupWebSocket()
-                }
+    drupload: function(files) {
+        var formData = new FormData();
+        for (var i = 0; i < files.length; i++) {
+            formData.append('file', files[i]);
+        }
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/upload?channel='+jt.getCurrentChannel().name);
+        xhr.onload = function () {
+            if (xhr.status != 200) {
+                alert("Uh Oh! Something went wonkers!");
             }
-        })
-        jt.view.render()
-    },
-
-    send: function(obj) {
-        jt.conn.send(JSON.stringify(obj))
-    },
-
-    onSocketClose: function (e) {
-        setInterval(function () {
-            $.ajax("/api/user", {
-                success: function () {
-                    window.location = "/"
-                }
-            })
-        }, 4000)
-        $(".overlay").show()
-        $("#navbar").hide();
-        $("#conn-lost").show();
-    },
-
-    onSocketMessage: function (e) {
-        var obj = JSON.parse(e.data);
-        switch (obj.type) {
-            case "hello":
-                if (obj.success) {
-                    if (localStorage.getItem("channels")) {
-                        jt.send({
-                            "type": "join",
-                            "channels": JSON.parse(localStorage.getItem("channels"))
-                        })
-                    }
-                    jt.user = obj.user
-                    jt.user.authed = true;
-                    $("#chat-image").attr("src", jt.user.avatar)
-                    $("#login").modal("hide")
-                } else {
-                    alert("Could not login: "+obj.msg);
-                }
-                break;
+        };
+        xhr.send(formData);
         }
-
-        jt.view.handle(obj)
-    },
-
-    setupWebSocket: function() {
-        if (window["WebSocket"]) {
-            var port = window.location.port ? "" : "5000"
-            jt.conn = new WebSocket("ws://"+window.location.host+":"+port+"/socket");
-            jt.conn.onclose = jt.onSocketClose;
-            jt.conn.onmessage = jt.onSocketMessage;
-            jt.conn.onopen = function () {
-                jt.send({"type": "hello"})
-            }
-        } else {
-            alert("Your browser does not have websocket support :(");
-        }
-    }
 }
 
 $(document).ready(function () {

@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -27,6 +28,15 @@ var CHANS map[string]*Channel = make(map[string]*Channel, 0)
 var CMDS map[string]CmdFunc = make(map[string]CmdFunc, 0)
 var DB *db.DB
 var RED *redis.Client
+var OUTERP, _ = regexp.Compile("<p>(.+)</p>")
+
+func NotOuterP(s string) string {
+	val := OUTERP.FindSubmatch([]byte(s))
+	if len(val) > 1 {
+		return string(val[1])
+	}
+	return s
+}
 
 func Bind(f CmdFunc, v ...string) {
 	for _, item := range v {
@@ -370,7 +380,7 @@ func Run() {
 		}
 
 		if args[1] == "topic" {
-			c.Topic = string(blackfriday.MarkdownCommon([]byte(sanitize.HTML(strings.Join(args[2:], " ")))))
+			c.Topic = NotOuterP(string(blackfriday.MarkdownCommon([]byte(sanitize.HTML(strings.Join(args[2:], " "))))))
 			resp.Set("k", "topic")
 			resp.Set("v", c.Topic)
 			resp.Set("a", fmt.Sprintf("%s has changed the channel topic", u.Name))
