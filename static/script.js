@@ -28,10 +28,18 @@ var jt = {
     is_afk: false,
     state: STATE.NIL,
 
+    config: {
+        sound: true,
+    },
+
 
     // If the user is authed, we open a new websocket, otherwise they
     //  are shown the login modal.
     init: function() {
+        if (localStorage.getItem("config")) {
+            jt.config = JSON.parse(localStorage.getItem("config"))
+        }
+
         $.ajax("/api/user", {
             success: function(data) {
                 if (!data.success) {
@@ -210,6 +218,7 @@ var jt = {
 
             // Un-afk
             if (jt.is_afk) {
+                jt.is_afk = false;
                 jt.send({
                     "type": "afk",
                     "state": false
@@ -325,8 +334,10 @@ var jt = {
                 var hilights = data.msg.match(jt.highlight)
                 if (hilights) {
                     for (i in hilights) {
+                        // It's us!
                         if (hilights[i].toLowerCase() == "@"+jt.user.name.toLowerCase()) {
                             data.highlight = true
+                            if (jt.config.sound) new Audio("ding.mp3").play()
                         }
                     }
                 }
