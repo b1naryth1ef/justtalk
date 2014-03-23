@@ -3,6 +3,11 @@ function isNumber(n) {
 }
 
 
+var STATE = {
+    NIL: 0,
+    CONN: 1,
+    OK: 2
+}
 
 var jt = {
     channels: {},
@@ -21,6 +26,8 @@ var jt = {
     view: jt,
     afk_timer: null,
     is_afk: false,
+    state: STATE.NIL,
+
 
     // If the user is authed, we open a new websocket, otherwise they
     //  are shown the login modal.
@@ -68,6 +75,7 @@ var jt = {
         switch (obj.type) {
             case "hello":
                 if (obj.success) {
+                    jt.state = STATE.OK
                     if (localStorage.getItem("channels")) {
                         jt.send({
                             "type": "join",
@@ -88,6 +96,7 @@ var jt = {
     },
 
     setupWebSocket: function() {
+        jt.state = STATE.CONN
         if (window["WebSocket"]) {
             var port = window.location.port ? "" : "5000"
             jt.conn = new WebSocket("ws://"+window.location.host+":"+port+"/socket");
@@ -431,7 +440,11 @@ var jt = {
             jt.select(data.name)
             jt.renderChannels()
             jt.renderUsers()
-            localStorage.setItem("channels", JSON.stringify(_.keys(jt.channels)))
+
+            // Only set this post-connect or you'll screw with channel rejoins
+            if (jt.state == STATE.OK) {
+                localStorage.setItem("channels", JSON.stringify(_.keys(jt.channels)))
+            }
         }
 
         if (data.type == "updatechannel") {

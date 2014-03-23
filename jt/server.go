@@ -29,6 +29,7 @@ var CMDS map[string]CmdFunc = make(map[string]CmdFunc, 0)
 var DB *db.DB
 var RED *redis.Client
 var OUTERP, _ = regexp.Compile("<p>(.+)</p>")
+var URLREG, _ = regexp.Compile(`/((([A-Za-z]{3,9}:(?:\/\/)?)(?:[-;:&=\+\$,\w]+@)?[A-Za-z0-9.-]+|(?:www.|[-;:&=\+\$,\w]+@)[A-Za-z0-9.-]+)((?:\/[\+~%\/.\w-_]*)?\??(?:[-\+=&;%@.\w_]*)#?(?:[\w]*))?)/`)
 var CONFIG json.Object
 
 func NotOuterP(s string) string {
@@ -39,6 +40,19 @@ func NotOuterP(s string) string {
 	return s
 }
 
+func IsUrlImage(url string) bool {
+	resp, err := http.Get(url)
+	if err != nil {
+		return false
+	}
+
+	if IsImage(resp.Header.Get("Content-Type")) {
+		return true
+	}
+
+	return false
+}
+
 func Bind(f CmdFunc, v ...string) {
 	for _, item := range v {
 		CMDS[item] = f
@@ -46,7 +60,6 @@ func Bind(f CmdFunc, v ...string) {
 }
 
 func IsImage(s string) bool {
-	log.Printf("%s", s)
 	switch s {
 	case "image/gif":
 		return true
@@ -325,6 +338,19 @@ func Run() {
 	http.HandleFunc("/logout", handleLogout)
 	http.HandleFunc("/authorize", handleAuthorize)
 	http.HandleFunc("/oauth2callback", handleOAuth2Callback)
+
+	Bind(func(u *Connection, c *Channel, o json.Object, args []string) {
+		if len(args) < 2 {
+			u.SendS(ChatError{Msg: "Usage: /img <url>"})
+		}
+
+		if IsUrlImage(args[1]) {
+			u.SendImage(c, args[1])
+		} else {
+			u.SendS(ChatError{Msg: "Error: Not a valid image!"})
+		}
+
+	}, "img", "i")
 
 	Bind(func(u *Connection, c *Channel, o json.Object, args []string) {
 		if len(args) < 2 {
