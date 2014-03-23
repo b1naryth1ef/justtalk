@@ -29,6 +29,7 @@ var CMDS map[string]CmdFunc = make(map[string]CmdFunc, 0)
 var DB *db.DB
 var RED *redis.Client
 var OUTERP, _ = regexp.Compile("<p>(.+)</p>")
+var CONFIG json.Object
 
 func NotOuterP(s string) string {
 	val := OUTERP.FindSubmatch([]byte(s))
@@ -121,8 +122,12 @@ func setup_db() {
 }
 
 func setup_redis() {
+	if !CONFIG.Has("redis") {
+		return
+	}
+
 	RED = redis.NewTCPClient(&redis.Options{
-		Addr: "localhost:6379",
+		Addr: CONFIG.VStr("redis"),
 	})
 }
 
@@ -297,7 +302,16 @@ func web_file(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(rw, "%s", RED.Get(key).Val())
 }
 
+func LoadConfig() {
+	data, err := ioutil.ReadFile("config.js")
+	if err != nil {
+		panic("No config! Please read example_config.js for more information.")
+	}
+	CONFIG = json.LoadJson(data)
+}
+
 func Run() {
+	LoadConfig()
 	setup_db()
 	setup_redis()
 	setup_auth()
@@ -407,11 +421,13 @@ func Run() {
 
 	}, "cset", "c")
 
+	// Default load the lobby
 	CHANS["lobby"] = NewChannel("lobby", "The Lobby", "Sit down and have a cup of tea", "https://lh5.ggpht.com/LkzyZWEvMWSym5etth9H3a2vMCxUZFNW99seYYF6XPKIGNvY3m1YzTe0QCDMQB9G0QM=w300")
 
+	// Rate limiting
 	go DecrementLimit()
 
-	err := http.ListenAndServe(":5000", nil)
+	err := http.ListenAndServe(CONFIG.VStr("host"), nil)
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
