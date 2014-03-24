@@ -203,8 +203,8 @@ var jt = {
                     if (text[x] == "@") {
                         var results = []
                         _.each(jt.getCurrentChannel().members, function (v, k) {
-                            if (v.username.toLowerCase().indexOf(data) != -1 ||
-                                    v.name.toLowerCase().indexOf(data) != -1) {
+                            if (v.username.toLowerCase().indexOf(data) == 0 ||
+                                    v.name.toLowerCase().indexOf(data) == 0) {
                                 results.push(v)
                             }
                         })
