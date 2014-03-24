@@ -54,6 +54,7 @@ var jt = {
     // If the user is authed, we open a new websocket, otherwise they
     //  are shown the login modal.
     init: function() {
+        emoji.img_path = "https://raw.githubusercontent.com/github/gemoji/master/images/emoji/unicode/";
         if (localStorage.getItem("config")) {
             jt.config = JSON.parse(localStorage.getItem("config"))
         }
@@ -404,7 +405,7 @@ var jt = {
             }
 
             // Bold all highlights
-            data.msg = data.msg.replace(jt.highlight, "<b>$&</b>")
+            data.msg = emoji.replace_colons(data.msg.replace(jt.highlight, "<b>$&</b>"))
             content = TEMPLATES.CHAT_CONTENT({
                 obj: data,
                 time: ""
