@@ -57,8 +57,9 @@ def ticket(obj):
         api.send_action(obj['dest'], "Usage: !ticket <ticket num>")
         return
     try:
-        format_ticket(obj['args'][0], obj['dest'])
-    except:
+        format_ticket(obj['dest'], obj['args'][0])
+    except Exception as e:
+        print e
         api.send_action(obj['dest'], "Woahh... Something went wrong while processing your request!")
 
 def activity_loop():
