@@ -2,6 +2,24 @@ function isNumber(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
+(function($) {
+    $.fn.getCursorPosition = function() {
+        var input = this.get(0);
+        if (!input) return; // No (input) element found
+        if ('selectionStart' in input) {
+            // Standard-compliant browsers
+            return input.selectionStart;
+        } else if (document.selection) {
+            // IE
+            input.focus();
+            var sel = document.selection.createRange();
+            var selLen = document.selection.createRange().text.length;
+            sel.moveStart('character', -input.value.length);
+            return sel.text.length - selLen;
+        }
+    }
+})(jQuery);
+
 
 var STATE = {
     NIL: 0,
@@ -166,8 +184,49 @@ var jt = {
     render: function() {
         // Input
         $('#middle-input-text').keydown(function(e) {
-            if(e.which == 13) {
+            // Enter key
+            if (e.which == 13) {
                 jt.onSendMessage();
+            }
+
+            // Tab autocomplete
+            if (e.which == 9) {
+                var x = $("#middle-input-text").getCursorPosition(),
+                    text = $("#middle-input-text").val()
+                    data = ""
+
+                // Extract the token, e.g. "@te" >> "te"
+                while (x > 0) {
+                    x--
+
+                    // If we have a token
+                    if (text[x] == "@") {
+                        var results = []
+                        _.each(jt.getCurrentChannel().members, function (v, k) {
+                            if (v.username.indexOf(data) != -1 || v.name.indexOf(data) != -1) {
+                                results.push(v)
+                            }
+                        })
+
+                        // If we have exactly one match, build a new input value based on it
+                        if (results.length == 1) {
+                            var a = text.substr(0, x)
+                            var b = text.substr(x + data.length + 1, 1000)
+                            $("#middle-input-text").val(a + "@" + results[0].name.toLowerCase() +" " + b)
+                        }
+                        break;
+                    }
+
+                    // Break on space, we don't do those
+                    if (text[x] == " ") {
+                        break;
+                    }
+
+                    // Append char
+                    data = $("#middle-input-text").val()[x] + data
+                }
+
+                e.preventDefault();
             }
 
             // Handles up/down arrow history
