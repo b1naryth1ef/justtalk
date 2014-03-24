@@ -203,7 +203,8 @@ var jt = {
                     if (text[x] == "@") {
                         var results = []
                         _.each(jt.getCurrentChannel().members, function (v, k) {
-                            if (v.username.indexOf(data) != -1 || v.name.indexOf(data) != -1) {
+                            if (v.username.toLowerCase().indexOf(data) != -1 ||
+                                    v.name.toLowerCase().indexOf(data) != -1) {
                                 results.push(v)
                             }
                         })
@@ -223,7 +224,7 @@ var jt = {
                     }
 
                     // Append char
-                    data = $("#middle-input-text").val()[x] + data
+                    data = $("#middle-input-text").val()[x].toLowerCase() + data
                 }
 
                 e.preventDefault();
