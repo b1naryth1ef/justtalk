@@ -110,7 +110,7 @@ func (c *Connection) SendImage(ch *Channel, url string) {
 		"avatar":   c.Avatar,
 		"username": c.Username,
 		"name":     c.Name,
-		"msg":      fmt.Sprintf(`<img class="embed" src="%s" />`, url),
+		"msg":      fmt.Sprintf(`<a href="%s"><img class="embed" src="%s" /></a>`, url),
 		"raw":      url,
 		"dest":     ch.Name,
 		"type":     "msg",

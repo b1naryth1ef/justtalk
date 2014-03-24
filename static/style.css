@@ -243,6 +243,7 @@ h6,
 
 .message-box .embed {
   max-width: 99%;
+  max-height: 40%;
 }
 
 .chat-name {
