@@ -206,11 +206,22 @@ func (c *Connection) ReadLoop() {
 				c.Send(resp)
 				continue
 			}
+
+			// User cannot send to a channel that they are not a member of
+			if _, ch := dest.Members[c.Username]; !ch {
+				resp.Set("type", "error")
+				resp.Set("msg", fmt.Sprintf("Not member of channel: %s", destname))
+				c.Send(resp)
+				continue
+			}
 		}
 
 		if action == "hello" {
 			c.ActionHello(obj)
 		} else if action == "msg" {
+			if (dest) == nil {
+				continue
+			}
 			c.ActionMsg(dest, obj)
 		} else if action == "join" {
 			c.ActionJoin(obj)
