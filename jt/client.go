@@ -125,7 +125,10 @@ func (c *Connection) SendImage(ch *Channel, url string) {
 func (c *Connection) ActionJoin(o json.Object) {
 	var ch *Channel
 	var has bool
-	chans := o.Value("channels").([]interface{})
+	chans, e := o.Value("channels").([]interface{})
+	if !e {
+		return
+	}
 	for _, v := range chans {
 		val, err := v.(string)
 		if !err {
@@ -158,7 +161,11 @@ func (c *Connection) ActionAfk(o json.Object) {
 		return
 	}
 
-	c.Afk = o.Value("state").(bool)
+	ve, e := o.Value("state").(bool)
+	if !e {
+		return
+	}
+	c.Afk = ve
 	for _, v := range CONNS {
 		v.Send(json.Object{
 			"type":  "afk",
