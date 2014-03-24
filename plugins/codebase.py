@@ -1,4 +1,4 @@
-import requests, json, thread, time, re
+import requests, json, thread, time, re, bleach
 from manager import API
 
 HREF = re.compile(r"""href=[\'"]?([^\'" >]+)""")
@@ -41,14 +41,15 @@ def format_ticket(dest, id):
     data = cb.get_ticket(id)[-1]['ticket']
     url = '<a target="_blank" href="https://%s.codebasehq.com/projects/%s/tickets/%s">#%s</a>' % (
         CONFIG.get("account"), CONFIG.get("repo"), id, id)
-    msg = "Ticket %s: %s (%s)" % (url, data["summary"], data["status"]['name'])
+    msg = "Ticket %s: %s (%s)" % (url, bleach.clean(data["summary"]),
+        bleach.clean(data["status"]['name']))
     api.send_action(dest, msg, icon="ticket")
 
 def format_commit(dest, data, repo):
     url = "https://spoton.codebasehq.com/projects/%s/repositories/%s/commit/%s" % (
         CONFIG.get("repo"), repo, data['ref'])
     link = '<a target="_blank" href="%s">%s</a>' % (url, data['ref'][:10])
-    msg = "Commit %s: %s (%s)" % (link, data['message'], data['author_email'])
+    msg = "Commit %s: %s (%s)" % (link, bleach.clean(data['message']), data['author_email'])
     icon = "code-fork" if "merge branch" in data['message'].lower() else "code"
     api.send_action(dest, msg, icon=icon)
 

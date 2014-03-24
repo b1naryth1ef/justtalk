@@ -395,8 +395,8 @@ var jt = {
                 var hilights = data.msg.match(jt.highlight)
                 if (hilights) {
                     for (i in hilights) {
-                        // It's us!
-                        if (hilights[i].toLowerCase() == "@"+jt.user.name.toLowerCase()) {
+                        // Its important to us!
+                        if (hilights[i].toLowerCase() == "@all" || hilights[i].toLowerCase() == "@"+jt.user.name.toLowerCase()) {
                             data.highlight = true
                             if (jt.config.sound) new Audio("ding.mp3").play()
                         }
