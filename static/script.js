@@ -541,6 +541,11 @@ var jt = {
                 }
             }
 
+            // Save channels
+            if (jt.state == STATE.OK) {
+                localStorage.setItem("channels", JSON.stringify(_.keys(jt.channels)))
+            }
+
             $("#channel-"+data.name).remove()
             jt.renderChannels()
             jt.renderUsers()
