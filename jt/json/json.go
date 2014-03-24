@@ -54,7 +54,11 @@ func (o Object) Value(s string) interface{} {
 
 func (o Object) VStr(s string) string {
 	if o.Has(s) && !o.IsObj(s) {
-		return o.Value(s).(string)
+		v, e := o.Value(s).(string)
+		if !e {
+			return ""
+		}
+		return v
 	}
 	return ""
 }

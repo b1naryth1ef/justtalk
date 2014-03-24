@@ -127,7 +127,11 @@ func (c *Connection) ActionJoin(o json.Object) {
 	var has bool
 	chans := o.Value("channels").([]interface{})
 	for _, v := range chans {
-		chan_name := sanitize.HTML(v.(string))
+		val, err := v.(string)
+		if !err {
+			return
+		}
+		chan_name := sanitize.HTML(val)
 		log.Printf("Channel: %s", chan_name)
 		ch, has = CHANS[chan_name]
 		if !has {
