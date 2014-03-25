@@ -80,6 +80,9 @@ var jt = {
             source: _.map(_.keys(EMOJI), function (i) { return ':'+i+':'}),
             highlighter: function (item) {
                 return jt.to_emoji(item) + item
+            },
+            shouldShow: function(query) {
+                return (query.indexOf(":") == 0)
             }
         });
     },

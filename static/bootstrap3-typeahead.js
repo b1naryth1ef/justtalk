@@ -38,6 +38,7 @@
     this.autoSelect = typeof this.options.autoSelect == 'boolean' ? this.options.autoSelect : true;
     this.highlighter = this.options.highlighter || this.highlighter;
     this.updater = this.options.updater || this.updater;
+    this.shouldShow = this.options.shouldShow || null;
     this.source = this.options.source;
     this.$menu = $(this.options.menu);
     this.shown = false;
@@ -100,6 +101,12 @@
         this.query = query;
       } else {
         this.query = this.$element.val() ||  '';
+      }
+
+      if (this.shouldShow) {
+        if (!this.shouldShow(this.query)) {
+          this.query = ""
+        }
       }
 
       if (this.query.length < this.options.minLength) {
