@@ -119,7 +119,7 @@ var jt = {
             $.ajax("/api/user", {
                 // If we are successful, reload
                 success: function () {
-                    window.location = "/"
+                    window.location.reload();
                 }
             })
         }, 4000)
