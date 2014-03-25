@@ -132,7 +132,25 @@ func handleOAuth2Callback(w http.ResponseWriter, r *http.Request) {
 	body, _ := ioutil.ReadAll(req.Body)
 	log.Printf("Body: %s", body)
 
+	// TODO cleanuup
 	data := json.LoadJson(body)
+	if !data.Has("hd") {
+		return
+	}
+
+	hd := data.VStr("hd")
+	found := false
+	for _, x := range CONFIG.Value("tlds").([]string) {
+		if x == hd {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return
+	}
+
 	user = FindUser(data.VStr("email"))
 	if user == nil {
 		data.Del("id")

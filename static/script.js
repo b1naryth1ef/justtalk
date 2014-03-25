@@ -34,6 +34,7 @@ var jt = {
     sent_history: [],
     history_point: 0,
     highlight: new RegExp(/@([a-zA-Z0-9]+)/g),
+    emoji: new RegExp('\:[^\\s:]+\:', 'g'),
     conn: null,
     user: {
         username: "",
@@ -50,11 +51,11 @@ var jt = {
         sound: true,
     },
 
-
     // If the user is authed, we open a new websocket, otherwise they
     //  are shown the login modal.
     init: function() {
-        emoji.img_path = "https://raw.githubusercontent.com/github/gemoji/master/images/emoji/unicode/";
+        //emojify.run()
+        //emoji.img_path = "https://raw.githubusercontent.com/github/gemoji/master/images/emoji/unicode/";
         if (localStorage.getItem("config")) {
             jt.config = JSON.parse(localStorage.getItem("config"))
         }
@@ -79,6 +80,15 @@ var jt = {
     // Send a object over the websocket
     send: function(obj) {
         jt.conn.send(JSON.stringify(obj))
+    },
+
+    to_emoji: function(s) {
+        return s.replace(jt.emoji, function (i) {
+            var actual = i.slice(1)
+            actual = actual.substring(0, actual.length - 1)
+            if (!EMOJI[actual]) { return i}
+            return '<span class="emoji" style="background-image:url(emoji/'+EMOJI[actual]+')"'+actual+'>'+i+'</span>';
+        })
     },
 
     // Display a warning when the socket is closed, and autorefresh
@@ -405,7 +415,8 @@ var jt = {
             }
 
             // Bold all highlights
-            data.msg = emoji.replace_colons(data.msg.replace(jt.highlight, "<b>$&</b>"))
+            data.msg = data.msg.replace(jt.highlight, "<b>$&</b>")
+            data.msg = jt.to_emoji(data.msg)
             content = TEMPLATES.CHAT_CONTENT({
                 obj: data,
                 time: ""
