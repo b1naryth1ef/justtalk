@@ -49,15 +49,18 @@ var jt = {
 
     config: {
         sound: true,
+        notifications: true
     },
 
     // If the user is authed, we open a new websocket, otherwise they
     //  are shown the login modal.
     init: function() {
-        //emojify.run()
-        //emoji.img_path = "https://raw.githubusercontent.com/github/gemoji/master/images/emoji/unicode/";
+
         if (localStorage.getItem("config")) {
-            jt.config = JSON.parse(localStorage.getItem("config"))
+            var userconfig = JSON.parse(localStorage.getItem("config"))
+            for (varn in userconfig) {
+                jt.config[varn] = userconfig[varn]
+            }
         }
 
         $.ajax("/api/user", {
@@ -81,10 +84,19 @@ var jt = {
             highlighter: function (item) {
                 return jt.to_emoji(item) + item
             },
-            shouldShow: function(query) {
-                return (query.indexOf(":") == 0)
-            }
+            triggerChar: ":"
         });
+    },
+
+    renderMenu: function() {
+        $(".toggle").remove()
+        _.each(jt.config, function (v, k) {
+            console.log()
+            $(".dropdown-menu").append(TEMPLATES.MENU_ITEM({
+                key: k,
+                value: v
+            }))
+        })
     },
 
     // Send a object over the websocket
@@ -272,15 +284,23 @@ var jt = {
             }
         });
 
+        jt.renderMenu()
+
+        $(".dropdown").delegate(".toggle", "click", function (e) {
+            e.stopPropagation();
+            var key = $(this).data("key")
+            if (jt.config[key] == undefined) return;
+            jt.config[key] = !jt.config[key]
+            jt.renderMenu()
+            localStorage.setItem("config", JSON.stringify(jt.config))
+        })
+
         // Changing channels
         $("#left-box").delegate(".left-box-element", "click", function (e) {
+            e.stopPropagation();
             jt.select($(this).data("name"))
             jt.renderUsers()
         })
-
-        if (window.webkitNotifications.checkPermission() == 0) {
-            $("#toggle-notifications").hide()
-        }
 
         $("#toggle-notifications").click(function (e) {
             window.webkitNotifications.requestPermission();
@@ -382,7 +402,7 @@ var jt = {
             }
             jt.flashTitle("Actvity in "+jt.channels[chan].title)
 
-            if (window.webkitNotifications.checkPermission() == 0) {
+            if (window.webkitNotifications.checkPermission() == 0 && jt.config.notifications) {
                 channel.notification = new Notification(channel.title, {
                     body: TEMPLATES.NOTIFICATION({
                         username: data.username,
@@ -392,6 +412,14 @@ var jt = {
                     icon: channel.image,
                     tag: channel.name
                 })
+
+                // Switch to tab and channel on notification click
+                channel.notification.onclick = function(x) {
+                    window.focus();
+                    if (jt.getCurrentChannel().name != channel.name) {
+                        jt.select(channel.name)
+                    }
+                }
             };
         }
 
@@ -441,6 +469,9 @@ var jt = {
                     content: content
                 }))
             }
+
+            // LOL HACKS
+            $("#chat-contents a").attr("target","_blank");
             jt.pingChannel(data.dest, data)
         }
 

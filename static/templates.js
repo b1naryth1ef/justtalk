@@ -27,5 +27,7 @@ var TEMPLATES = {
         '<span><%= obj.name %></span><br /></div>'),
 
     NOTIFICATION: _.template("<%- username %>: <%= msg %><% if (count) { %>"+
-        " (and <%= count %> more)<% } %>")
+        " (and <%= count %> more)<% } %>"),
+
+    MENU_ITEM: _.template('<li><a data-key="<%= key %>" class="toggle" id="toggle-<%= key %>"><%= value ? "Disable" : "Enable" %> <%= key %></a></li>')
 }

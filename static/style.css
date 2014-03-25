@@ -155,6 +155,10 @@ h6,
   -ms-box-sizing: border-box; /* for IE8 */
 }
 
+#chat-window h1, h2, h3, h4, h5, h6 {
+  font-size: 20;
+}
+
 .titlebar{
   padding-top: 0.5em;
   font-size: 1.2em;

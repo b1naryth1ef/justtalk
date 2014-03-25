@@ -22,7 +22,7 @@
 
 !function($){
 
-  "use strict";
+  // "use strict";
   // jshint laxcomma: true
 
 
@@ -39,11 +39,13 @@
     this.highlighter = this.options.highlighter || this.highlighter;
     this.updater = this.options.updater || this.updater;
     this.shouldShow = this.options.shouldShow || null;
+    this.triggerChar = this.options.triggerChar || null;
     this.source = this.options.source;
     this.$menu = $(this.options.menu);
     this.shown = false;
     this.listen();
     this.showHintOnFocus = typeof this.options.showHintOnFocus == 'boolean' ? this.options.showHintOnFocus : false;
+    this.query_pos = [0, 0];
   };
 
   Typeahead.prototype = {
@@ -51,10 +53,18 @@
     constructor: Typeahead
 
   , select: function () {
+      var start = "", end = "";
+
+      // Trigger char
+      if (this.query_pos[0] != this.query_pos[1]) {
+        start = this.$element.val().substr(0, parseInt(this.query_pos[0]))
+        end = this.$element.val().substr(parseInt(this.query_pos[1]), this.$element.val().length)
+      }
+
       var val = this.$menu.find('.active').data('value');
       if(this.autoSelect || val) {
         this.$element
-          .val(this.updater(val))
+          .val(start + this.updater(val) + end)
           .change();
       }
       return this.hide();
@@ -95,12 +105,47 @@
       return this;
     }
 
-  , lookup: function (query) {
+  , lookup: function (query, pos) {
       var items;
       if (typeof(query) != 'undefined' && query !== null) {
         this.query = query;
       } else {
         this.query = this.$element.val() ||  '';
+      }
+
+      if (this.triggerChar) {
+        var start = 0,
+            end = 0,
+            word = "",
+            valid = false,
+            found = false;
+        
+        for (a in this.query) {
+          a = parseInt(a)
+          if (this.query[a] == " ") {
+              if (found) { end = a; break; }
+              valid = false; word = ""; start = 0; continue;
+          }
+
+          if (word == "" && this.query[a] == this.triggerChar) {
+            valid = true;
+            start = a;
+          }
+
+          if (a == (pos-1)) {
+            if (valid) { found = true}
+          }
+
+          word = word + this.query[a];
+        }
+
+        if (found) {
+          end = end || a+1
+          this.query_pos = [start, end]
+          this.query = word;
+        } else {
+          this.query = ""
+        }
       }
 
       if (this.shouldShow) {
@@ -268,7 +313,7 @@
   , keydown: function (e) {
       this.suppressKeyPressRepeat = ~$.inArray(e.keyCode, [40,38,9,13,27]);
       if (!this.shown && e.keyCode == 40) {
-        this.lookup("");
+        this.lookup("", this.$element.getCursorPosition());
       } else {
         this.move(e);
       }
@@ -299,7 +344,7 @@
           this.hide();
           break;
         default:
-          this.lookup();
+          this.lookup(null, this.$element.getCursorPosition());
       }
 
       e.stopPropagation();
@@ -310,7 +355,7 @@
       if (!this.focused) {
         this.focused = true;
         if (this.options.minLength === 0 && !this.$element.val() || this.options.showHintOnFocus) {
-          this.lookup();
+          this.lookup(null, this.$element.getCursorPosition());
         }
       }
     }
