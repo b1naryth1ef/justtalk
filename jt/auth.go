@@ -140,8 +140,8 @@ func handleOAuth2Callback(w http.ResponseWriter, r *http.Request) {
 
 	hd := data.VStr("hd")
 	found := false
-	for _, x := range CONFIG.Value("tlds").([]string) {
-		if x == hd {
+	for _, x := range CONFIG.Value("tlds").([]interface{}) {
+		if x.(string) == hd {
 			found = true
 			break
 		}
