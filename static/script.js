@@ -75,6 +75,13 @@ var jt = {
 
         // Render everything else
         jt.render()
+
+        $("#middle-input-text").typeahead({
+            source: _.map(_.keys(EMOJI), function (i) { return ':'+i+':'}),
+            highlighter: function (item) {
+                return jt.to_emoji(item) + item
+            }
+        });
     },
 
     // Send a object over the websocket
@@ -196,6 +203,7 @@ var jt = {
         // Input
         $('#middle-input-text').keydown(function(e) {
             // Enter key
+            if ($(".typeahead").is(":visible")) return;
             if (e.which == 13) {
                 jt.onSendMessage();
             }
