@@ -9,10 +9,10 @@ def run(cmd):
 HIPCHAT_SOURCE = "https://raw.githubusercontent.com/henrik/hipchat-emoticons/master/emoticons.json"
 def parse_hipchat_source():
     data = requests.get(HIPCHAT_SOURCE).json()
-    data = set(map(lambda i: i['file'], data))
 
     for item in data:
-        yield (item.rsplit(".", 1)[0], "https://dujrsrsgsd3nh.cloudfront.net/img/emoticons/"+item)
+        yield (item['shortcut'][1:-1],
+            "https://dujrsrsgsd3nh.cloudfront.net/img/emoticons/"+item['file'])
 
 def parse_emoji_source():
     if os.path.exists("/tmp/emoji"):
