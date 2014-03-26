@@ -12,7 +12,7 @@ def parse_hipchat_source():
 
     for item in data:
         name = item['shortcut'][1:-1]
-        if ':' in name: continue
+        if ':' in name or not name: continue
         yield (name,
             "https://dujrsrsgsd3nh.cloudfront.net/img/emoticons/"+item['file'])
 
