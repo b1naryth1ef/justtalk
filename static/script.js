@@ -109,7 +109,7 @@ var jt = {
             var actual = i.slice(1)
             actual = actual.substring(0, actual.length - 1)
             if (!EMOJI[actual]) { return i}
-            return '<span class="emoji" style="background-image:url(emoji/'+EMOJI[actual]+')"'+actual+'>'+i+'</span>';
+            return '<span class="emoji" style="background-image:url('+EMOJI[actual]+')"'+actual+'>'+i+'</span>';
         })
     },
 
