@@ -11,7 +11,9 @@ def parse_hipchat_source():
     data = requests.get(HIPCHAT_SOURCE).json()
 
     for item in data:
-        yield (item['shortcut'][1:-1],
+        name = item['shortcut'][1:-1]
+        if ':' in name: continue
+        yield (name,
             "https://dujrsrsgsd3nh.cloudfront.net/img/emoticons/"+item['file'])
 
 def parse_emoji_source():
