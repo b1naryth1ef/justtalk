@@ -447,6 +447,24 @@ func Run() {
 
 	}, "cset", "c")
 
+	// Bind(func(u *Connection, c *Channel, o json.Object, args []string) {
+	// 	resp := make(json.Object)
+	// 	if len(args) < 2 {
+	// 		u.SendS(ChatError{
+	// 			Msg: fmt.Sprintf("Usage: /%s <user>", args[0]),
+	// 		})
+	// 		return
+	// 	}
+
+	// 	name := strings.ToLower(args[1])
+	// 	user, uch := CONNS[name]
+	// 	if !uch {
+	// 		u.SendS(ChatError{Msg: fmt.Sprintf("No user `%s`!", name)})
+	// 		return
+	// 	}
+
+	// }, "pm", "msg")
+
 	// Default load the lobby
 	CHANS["lobby"] = NewChannel("lobby", "The Lobby", "Sit down and have a cup of tea", "https://lh5.ggpht.com/LkzyZWEvMWSym5etth9H3a2vMCxUZFNW99seYYF6XPKIGNvY3m1YzTe0QCDMQB9G0QM=w300")
 

@@ -1,61 +1,62 @@
-function isNumber(n) {
-  return !isNaN(parseFloat(n)) && isFinite(n);
-}
-
-(function($) {
-    $.fn.getCursorPosition = function() {
-        var input = this.get(0);
-        if (!input) return; // No (input) element found
-        if ('selectionStart' in input) {
-            // Standard-compliant browsers
-            return input.selectionStart;
-        } else if (document.selection) {
-            // IE
-            input.focus();
-            var sel = document.selection.createRange();
-            var selLen = document.selection.createRange().text.length;
-            sel.moveStart('character', -input.value.length);
-            return sel.text.length - selLen;
-        }
-    }
-})(jQuery);
-
-
+// Represents the current connection state
 var STATE = {
     NIL: 0,
     CONN: 1,
     OK: 2
 }
 
+// jt is our global object
 var jt = {
+    // A dictionary of channels and there data
     channels: {},
-    title_flash: null,
-    title_origin: null,
-    sent_history: [],
-    history_point: 0,
-    highlight: new RegExp(/@([a-zA-Z0-9]+)/g),
-    emoji: new RegExp('\:[^\\s:]+\:', 'g'),
-    conn: null,
+
+    // Handles title-bar based notifications
+    title: {
+        flash: null,
+        origin: null
+    },
+
+    // Handles the sent history behavior on up/down arrow in chat box
+    history: {
+        sent: [],
+        point: 0
+    },
+
+    // User data
     user: {
         username: "",
         name: "",
         authed: false,
         avatar: ""
     },
-    view: jt,
-    afk_timer: null,
-    is_afk: false,
-    state: STATE.NIL,
 
+    // The users afk info
+    afk: {
+        timer: null,
+        is: false,
+    },
+
+    // Users configuration
     config: {
         sound: true,
         notifications: true
     },
 
-    // If the user is authed, we open a new websocket, otherwise they
-    //  are shown the login modal.
-    init: function() {
+    // Handles @ highlights
+    highlight: new RegExp(/@([a-zA-Z0-9]+)/g),
 
+    // Handles emojis
+    emoji: new RegExp('\:[^\\s:]+\:', 'g'),
+
+    // Websocket
+    conn: null,
+
+    // Current state
+    state: STATE.NIL,
+
+    // This function is called when the JS is first loaded
+    init: function() {
+        // If we have a local config stored, reload all the variables
         if (localStorage.getItem("config")) {
             var userconfig = JSON.parse(localStorage.getItem("config"))
             for (varn in userconfig) {
@@ -63,6 +64,8 @@ var jt = {
             }
         }
 
+        // If the user is authed, we open a new websocket, otherwise they
+        //  are shown the login modal.
         $.ajax("/api/user", {
             success: function(data) {
                 if (!data.success) {
@@ -79,6 +82,7 @@ var jt = {
         // Render everything else
         jt.render()
 
+        // Set up typeahead on the chat box
         $("#middle-input-text").typeahead({
             source: _.map(_.keys(EMOJI), function (i) { return ':'+i+':'}),
             highlighter: function (item) {
@@ -88,6 +92,7 @@ var jt = {
         });
     },
 
+    // Renders the main menu
     renderMenu: function() {
         $(".toggle").remove()
         _.each(jt.config, function (v, k) {
@@ -104,6 +109,7 @@ var jt = {
         jt.conn.send(JSON.stringify(obj))
     },
 
+    // Takes a string and replaces emojis with images
     to_emoji: function(s) {
         return s.replace(jt.emoji, function (i) {
             var actual = i.slice(1)
@@ -154,6 +160,7 @@ var jt = {
         jt.handle(obj)
     },
 
+    // Creates a fresh websocket
     setupWebSocket: function() {
         jt.state = STATE.CONN
         if (window["WebSocket"]) {
@@ -169,19 +176,20 @@ var jt = {
         }
     },
 
+    // Flashes a message on the title
     flashTitle: function(text) {
-        jt.title_origin = document.title
-        clearInterval(jt.title_flash)
-        jt.title_flash = setInterval(function() {
+        jt.title.origin = document.title
+        clearInterval(jt.title.flash)
+        jt.title.flash = setInterval(function() {
             if (window.document.hasFocus()) {
-                document.title = jt.title_origin
-                clearInterval(jt.title_flash)
+                document.title = jt.title.origin
+                clearInterval(jt.title.flash)
                 return
             }
-            if (document.title == jt.title_origin) {
+            if (document.title == jt.title.origin) {
                 document.title = text
             } else {
-                document.title = jt.title_origin
+                document.title = jt.title.origin
             }
         }, 1000);
     },
@@ -199,10 +207,10 @@ var jt = {
     onSendMessage: function() {
         var text = $("#middle-input-text").val()
 
-        jt.history_point = 0
-        jt.sent_history.unshift(text)
-        if (jt.sent_history.length > 250) {
-            jt.sent_history.pop(-1)
+        jt.history.point = 0
+        jt.history.sent.unshift(text)
+        if (jt.history.sent.length > 250) {
+            jt.history.sent.pop(-1)
         }
 
         jt.send({
@@ -268,19 +276,19 @@ var jt = {
             if (e.which == 38 || e.which == 40) { 
                 e.preventDefault();
 
-                if (e.which == 38) jt.history_point++
-                if (e.which == 40) jt.history_point--
+                if (e.which == 38) jt.history.point++
+                if (e.which == 40) jt.history.point--
 
-                if (jt.history_point == 250 || jt.history_point > jt.sent_history.length) {
-                    jt.history_point = jt.sent_history.length
+                if (jt.history.point == 250 || jt.history.point > jt.history.sent.length) {
+                    jt.history.point = jt.history.sent.length
                     return
-                } else if (jt.history_point < 1) {
+                } else if (jt.history.point < 1) {
                     $("#middle-input-text").val("")
-                    jt.history_point = 0
+                    jt.history.point = 0
                     return
                 }
                 
-                $("#middle-input-text").val(jt.sent_history[jt.history_point-1])
+                $("#middle-input-text").val(jt.history.sent[jt.history.point-1])
             }
         });
 
@@ -316,11 +324,11 @@ var jt = {
             })
 
             // Clear afk timer
-            if (jt.afk_timer) clearTimeout(jt.afk_timer)
+            if (jt.afk.timer) clearTimeout(jt.afk.timer)
 
             // Un-afk
-            if (jt.is_afk) {
-                jt.is_afk = false;
+            if (jt.afk.is) {
+                jt.afk.is = false;
                 jt.send({
                     "type": "afk",
                     "state": false
@@ -330,12 +338,12 @@ var jt = {
 
         $(window).blur(function () {
             // After 10 minutes set this user as afk
-            jt.afk_timer = setTimeout(function () {
+            jt.afk.timer = setTimeout(function () {
                 jt.send({
                     "type": "afk",
                     "state": true
                 })
-                jt.is_afk = true
+                jt.afk.is = true
             }, 60000 * 10)
         })
 
