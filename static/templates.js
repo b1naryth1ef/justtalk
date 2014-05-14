@@ -15,7 +15,7 @@ var TEMPLATES = {
         '<% if (obj.raw) { %><%= obj.action %><% } else {%><%- obj.action %><% } %></i></div>'),
 
     CHANNEL_LEFT: _.template(
-        '<div id="left-channel-<%= obj.name %>" class="left-box-element <% if (obj.selected) { %>selected<% } %>" data-name="<%= obj.name %>">'+
+        '<div data-name="<%- obj.name %>" class="left-chan left-box-element <% if (obj.selected) { %>selected<% } %>" data-name="<%= obj.name %>">'+
         '<img src="<%= obj.image %>" class="img-rounded" style="float: left; margin-right: 5px; height: 40px; width: 40px;">'+
         '<h4 style="margin-top: 0px; margin-bottom: 0px"><%= obj.title %></h4>'+
         '<p style="margin-bottom: 0px"><%= obj.topic %></p></div>'),
@@ -29,5 +29,7 @@ var TEMPLATES = {
     NOTIFICATION: _.template("<%- username %>: <%= msg %><% if (count) { %>"+
         " (and <%= count %> more)<% } %>"),
 
-    MENU_ITEM: _.template('<li><a data-key="<%= key %>" class="toggle" id="toggle-<%= key %>"><%= value ? "Disable" : "Enable" %> <%= key %></a></li>')
+    MENU_ITEM: _.template('<li><a data-key="<%= key %>" class="toggle" id="toggle-<%= key %>"><%= value ? "Disable" : "Enable" %> <%= key %></a></li>'),
+
+    CHAN_DIV: _.template('<div class="channel" style="display: none" data-name="<%- name %>"></div>')
 }

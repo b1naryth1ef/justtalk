@@ -96,7 +96,6 @@ var jt = {
     renderMenu: function() {
         $(".toggle").remove()
         _.each(jt.config, function (v, k) {
-            console.log()
             $(".dropdown-menu").append(TEMPLATES.MENU_ITEM({
                 key: k,
                 value: v
@@ -353,7 +352,7 @@ var jt = {
             jt.drupload(e.originalEvent.dataTransfer.files);
         })
 
-        $(document).on("dragover", function(e) { e.preventDefault(); console.log("ding")})
+        $(document).on("dragover", function(e) { e.preventDefault();})
     },
 
     // Renders the left hand channel list
@@ -380,18 +379,17 @@ var jt = {
     select: function(chan) {
         _.each(jt.channels, function(channel, x) {
             channel.selected = (x == chan)
-            var sel = $("#channel-"+channel.name)
-
+            var sel = $('.channel[data-name="'+channel.name+'"]')
             if (channel.selected) {
                 sel.show()
-                $("#left-channel-"+channel.name).addClass("selected")
-                $("#left-channel-"+channel.name).removeClass("left-box-activity")
+                $('.left-chan[data-name="'+channel.name+'"]').addClass("selected")
+                $('.left-chan[data-name="'+channel.name+'"]').removeClass("left-box-activity")
                 channel.unread = 0
                 if (channel.notification) {
                     channel.notification.close()
                 }
             } else {
-                $("#left-channel-"+channel.name).removeClass("selected")
+                $('.left-chan[data-name="'+channel.name+'"]').removeClass("selected")
                 sel.hide()
             }
         })
@@ -438,7 +436,7 @@ var jt = {
 
     // Adds a channel action
     addAction: function(dest, data) {
-        $("#channel-"+dest).append(TEMPLATES.CHAT_ACTION(data))
+        $('channel[data-name="'+dest+'"]').append(TEMPLATES.CHAT_ACTION(data))
         jt.pingChannel(dest)
     },
 
@@ -469,10 +467,10 @@ var jt = {
                 time: ""
             })
 
-            if (false) { //($("#channel-"+data.dest+" .message-box").last().data("author") == data.username) {
-                $("#channel-"+data.dest+" .message-box").last().append(content)
+            if ($('.channel[data-name="'+data.dest+'"] .message-box').last().data("author") == data.username) {
+                $('.channel[data-name="'+data.dest+'"] .message-box').last().append(content)
             } else {
-                $("#channel-"+data.dest).append(TEMPLATES.CHAT_MESSAGE({
+                $('.channel[data-name="'+data.dest+'"]').append(TEMPLATES.CHAT_MESSAGE({
                     obj: data,
                     content: content
                 }))
@@ -529,7 +527,7 @@ var jt = {
                         break;
                     }
                 }
-                $("#channel-"+data.name).remove()
+                $('.left-chan[data-name="'+data.name+'"]').remove()
                 jt.renderChannels()
                 jt.renderUsers()
             }
@@ -567,7 +565,7 @@ var jt = {
         }
 
         if (data.type == "channel") {
-            $("#chat-contents").append('<div style="display: none" id="channel-'+data.name+'"></div>')
+            $("#chat-contents").append(TEMPLATES.CHAN_DIV({name: data.name}))
             data.unread = 0
             jt.channels[data.name] = data
             jt.select(data.name)
@@ -607,7 +605,7 @@ var jt = {
                 localStorage.setItem("channels", JSON.stringify(_.keys(jt.channels)))
             }
 
-            $("#channel-"+data.name).remove()
+            $('channel[data-name="'+data.name+'"]').remove()
             jt.renderChannels()
             jt.renderUsers()
         }

@@ -241,8 +241,7 @@ h6,
 
 .message-box p {
   margin-bottom: 5px;
-/*  width: 17%;
-  word-wrap: break-word;*/
+  margin-left: 50px;
 }
 
 .message-box .embed {

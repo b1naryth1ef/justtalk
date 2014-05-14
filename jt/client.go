@@ -101,7 +101,6 @@ func (c *Connection) ActionMsg(ch *Channel, o json.Object) {
 
 	data, _ := packet.Dump()
 	RED.Publish("justtalk-"+ch.Name, string(data))
-
 	ch.SendRaw(packet)
 }
 
