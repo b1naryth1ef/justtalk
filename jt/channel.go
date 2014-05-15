@@ -15,21 +15,27 @@ type Channel struct {
 	Topic   string
 	Image   string
 	Members map[string]*Connection
+	PM      bool
 }
 
-func NewChannel(name, title, topic, image string) *Channel {
+func NewChannel(name, title, topic, image string, pm bool) *Channel {
 	ch := Channel{
 		Name:    name,
 		Title:   title,
 		Topic:   topic,
 		Image:   image,
 		Members: make(map[string]*Connection, 0),
+		PM:      pm,
 	}
-	if !ch.Load() {
-		log.Printf("Creating completely new channel!")
-		ch.SaveNew()
-	} else {
-		ch.Save()
+
+	// PM channels don't get saved
+	if !pm {
+		if !ch.Load() {
+			log.Printf("Creating completely new channel!")
+			ch.SaveNew()
+		} else {
+			ch.Save()
+		}
 	}
 	return &ch
 }
@@ -46,6 +52,11 @@ func (c *Channel) Delete() {
 }
 
 func (c *Channel) Save() {
+	// PM channels can't be saved
+	if c.PM {
+		return
+	}
+
 	chans := DB.Use("channels")
 	err := chans.Update(c.ID, c.ToJson())
 	if err != nil {
@@ -55,6 +66,11 @@ func (c *Channel) Save() {
 }
 
 func (c *Channel) SaveNew() {
+	// PM channels can't be saved
+	if c.PM {
+		return
+	}
+
 	chans := DB.Use("channels")
 	doc, err := chans.Insert(c.ToJson())
 	if err != nil {
@@ -110,13 +126,20 @@ func (c *Channel) Quit(u *Connection, msg string) {
 	delete(c.Members, u.Username)
 }
 
-func (c *Channel) Join(u *Connection) {
+// This does everything required for joining EXCEPT sending the JOIN packets to the user
+func (c *Channel) BuildJoin(u *Connection) json.Object {
 	c.Members[u.Username] = u
 	u.Channels = append(u.Channels, c)
 	obj := make(json.Object)
 	obj.Set("type", "join")
 	obj.Set("name", c.Name)
 	obj.Set("user", u.ToJson())
+	return obj
+}
+
+// This adds a user to a channel, sending the required packets
+func (c *Channel) Join(u *Connection) {
+	obj := c.BuildJoin(u)
 	c.SendRaw(obj)
 	u.Send(c.ToJson())
 }
@@ -143,6 +166,7 @@ func (c Channel) ToJson() json.Object {
 		"title": c.Title,
 		"topic": c.Topic,
 		"image": c.Image,
+		"pm":    c.PM,
 	}
 	var members []json.Object = make([]json.Object, 0)
 	for _, mem := range c.Members {

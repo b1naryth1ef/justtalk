@@ -436,7 +436,7 @@ var jt = {
 
     // Adds a channel action
     addAction: function(dest, data) {
-        $('channel[data-name="'+dest+'"]').append(TEMPLATES.CHAT_ACTION(data))
+        $('.channel[data-name="'+dest+'"]').append(TEMPLATES.CHAT_ACTION(data))
         jt.pingChannel(dest)
     },
 
@@ -541,6 +541,7 @@ var jt = {
                     return
                 }
             }
+
             jt.channels[data.name].members.push(data.user)
             jt.renderChannels()
             jt.renderUsers()
@@ -566,6 +567,20 @@ var jt = {
 
         if (data.type == "channel") {
             $("#chat-contents").append(TEMPLATES.CHAN_DIV({name: data.name}))
+
+            if (data.pm) {
+                for (i in data.members) {
+                    if (data.members[i].username != jt.user.username) {
+                        data.other = data.members[i]
+                        break;
+                    }
+                }
+
+                data.image = data.other.avatar
+                data.title = "PM with " + data.other.name
+                data.topic = "Private Chat with "+data.other.username
+            }
+
             data.unread = 0
             jt.channels[data.name] = data
             jt.select(data.name)

@@ -80,18 +80,18 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ws, err := websocket.Upgrade(w, r, nil, 1024, 1024)
-	if err == nil {
-		c := &Connection{
-			Buffer: make(chan []byte, 256),
-			ws:     ws,
-		}
-		c.LoadUser(user)
-		go c.ReadLoop()
-		c.WriteLoop()
-	} else {
+	if err != nil {
 		log.Printf("handleWebSocket err: %v", err)
-		http.Error(w, "Something went wrong yo!", 500)
+		http.Error(w, "Error opening websocket!", 500)
 	}
+
+	c := &Connection{
+		Buffer: make(chan []byte, 256),
+		ws:     ws,
+	}
+	c.LoadUser(user)
+	go c.ReadLoop()
+	c.WriteLoop()
 }
 
 func getAvatarHash(name string) string {
@@ -324,11 +324,18 @@ func LoadConfig() {
 }
 
 func Run() {
+	// Loads and validates config
 	LoadConfig()
+
+	// Setup some common things
 	setup_db()
 	setup_redis()
 	setup_auth()
+
+	// Grab Ctrl+C signals
 	hook_exit()
+
+	// These are the HTTP routes
 	http.Handle("/", http.FileServer(http.Dir("static")))
 	http.HandleFunc("/socket", handleWebSocket)
 	http.HandleFunc("/api/send", web_send_to)
@@ -360,8 +367,14 @@ func Run() {
 		chan_name := strings.ToLower(args[1])
 
 		if _, chan_exists := CHANS[chan_name]; !chan_exists {
-			channel := NewChannel(chan_name, chan_name, "", getAvatarUrl(chan_name))
+			channel := NewChannel(chan_name, chan_name, "", getAvatarUrl(chan_name), false)
 			CHANS[chan_name] = channel
+		}
+
+		// We cannot join private message lobbies
+		if CHANS[chan_name].PM {
+			u.SendS(ChatError{Msg: "Invalid Channel!"})
+			return
 		}
 
 		CHANS[chan_name].Join(u)
@@ -372,6 +385,11 @@ func Run() {
 			u.SendS(ChatError{
 				Msg: "You cannot leave the lobby!",
 			})
+			return
+		}
+
+		if c.PM {
+			c.Delete()
 			return
 		}
 
@@ -386,14 +404,23 @@ func Run() {
 			})
 			return
 		}
+
+		if c.PM {
+			u.SendS(ChatError{
+				Msg: "That action is not availbile for Private Messages.",
+			})
+			return
+		}
+
 		c.Delete()
-	}, "Delete")
+	}, "delete")
 
 	Bind(func(u *Connection, c *Channel, o json.Object, args []string) {
 		if len(args) < 2 {
 			u.SendS(ChatError{Msg: "Usage: /action <action>"})
 			return
 		}
+
 		c.SendRaw(json.Object{
 			"type":   "action",
 			"action": strings.Join(args[1:], " "),
@@ -416,6 +443,13 @@ func Run() {
 
 		if c.Name == "lobby" {
 			u.SendS(ChatError{Msg: "Cannot edit the lobby!"})
+			return
+		}
+
+		if c.PM {
+			u.SendS(ChatError{
+				Msg: "That action is not availbile for Private Messages.",
+			})
 			return
 		}
 
@@ -447,26 +481,41 @@ func Run() {
 
 	}, "cset", "c")
 
-	// Bind(func(u *Connection, c *Channel, o json.Object, args []string) {
-	// 	resp := make(json.Object)
-	// 	if len(args) < 2 {
-	// 		u.SendS(ChatError{
-	// 			Msg: fmt.Sprintf("Usage: /%s <user>", args[0]),
-	// 		})
-	// 		return
-	// 	}
+	Bind(func(u *Connection, c *Channel, o json.Object, args []string) {
+		//resp := make(json.Object)
+		if len(args) < 2 {
+			u.SendS(ChatError{
+				Msg: fmt.Sprintf("Usage: /%s <user>", args[0]),
+			})
+			return
+		}
 
-	// 	name := strings.ToLower(args[1])
-	// 	user, uch := CONNS[name]
-	// 	if !uch {
-	// 		u.SendS(ChatError{Msg: fmt.Sprintf("No user `%s`!", name)})
-	// 		return
-	// 	}
+		name := strings.ToLower(args[1])
+		user, uch := CONNS[name]
+		if !uch {
+			u.SendS(ChatError{Msg: fmt.Sprintf("No user `%s`!", name)})
+			return
+		}
 
-	// }, "pm", "msg")
+		chan_name := fmt.Sprintf("!PM!%v", rand.Int31())
+		pm_chan := NewChannel(chan_name, "", "", "", true)
+
+		// Add this as a valid channel
+		CHANS[chan_name] = pm_chan
+
+		// Add the users to the PM, don't send JOIN packets
+		pm_chan.BuildJoin(u)
+		pm_chan.BuildJoin(user)
+
+		// Now send packets
+		u.Send(pm_chan.ToJson())
+		user.Send(pm_chan.ToJson())
+
+		log.Printf("Yeaaaah!")
+	}, "pm", "msg")
 
 	// Default load the lobby
-	CHANS["lobby"] = NewChannel("lobby", "The Lobby", "Sit down and have a cup of tea", "https://lh5.ggpht.com/LkzyZWEvMWSym5etth9H3a2vMCxUZFNW99seYYF6XPKIGNvY3m1YzTe0QCDMQB9G0QM=w300")
+	CHANS["lobby"] = NewChannel("lobby", "The Lobby", "Sit down and have a cup of tea", "https://lh5.ggpht.com/LkzyZWEvMWSym5etth9H3a2vMCxUZFNW99seYYF6XPKIGNvY3m1YzTe0QCDMQB9G0QM=w300", false)
 
 	// Rate limiting
 	go DecrementLimit()

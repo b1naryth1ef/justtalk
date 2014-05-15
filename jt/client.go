@@ -142,7 +142,7 @@ func (c *Connection) ActionJoin(o json.Object) {
 					log.Printf("Limiting number of channels!")
 					return
 				}
-				ch = NewChannel(chan_name, chan_name, "", "")
+				ch = NewChannel(chan_name, chan_name, "", "", false)
 				CHANS[ch.Name] = ch
 			} else {
 				continue
