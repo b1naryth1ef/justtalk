@@ -47,7 +47,6 @@ func loadAuthConfig() {
 		Scope:        "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
 		AuthURL:      web.VStr("auth_uri"),
 		TokenURL:     web.VStr("token_uri"),
-		TokenCache:   oauth.CacheFile("cache.json"),
 	}
 }
 
@@ -105,17 +104,10 @@ func handleOAuth2Callback(w http.ResponseWriter, r *http.Request) {
 	code := r.FormValue("code")
 
 	t := &oauth.Transport{Config: authcfg}
+	t.Token = nil
 
 	// Exchange the received code for a token
-	tok, _ := t.Exchange(code)
-
-	tokenCache := oauth.CacheFile("./request.token")
-
-	err := tokenCache.PutToken(tok)
-	if err != nil {
-		log.Fatal("Cache write:", err)
-	}
-	log.Printf("Token is cached in %v\n", tokenCache)
+	t.Exchange(code)
 
 	// Skip TLS Verify
 	t.Transport = &http.Transport{
