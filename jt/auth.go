@@ -103,6 +103,11 @@ func handleOAuth2Callback(w http.ResponseWriter, r *http.Request) {
 	//Get the code from the response
 	code := r.FormValue("code")
 
+	// If we don't get a code, just exit out early
+	if code == "" {
+		return
+	}
+
 	t := &oauth.Transport{Config: authcfg}
 	t.Token = nil
 
