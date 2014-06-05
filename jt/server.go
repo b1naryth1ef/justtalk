@@ -497,6 +497,11 @@ func Run() {
 			return
 		}
 
+		if user == u {
+			u.SendS(ChatError{Msg: "You cannot message yourself!"})
+			return
+		}
+
 		chan_name := fmt.Sprintf("!PM!%v", rand.Int31())
 		pm_chan := NewChannel(chan_name, "", "", "", true)
 
