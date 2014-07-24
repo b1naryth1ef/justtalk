@@ -83,7 +83,7 @@ func (c *Channel) SaveNew() {
 func FindChannel(name string) map[uint64]struct{} {
 	chans := DB.Use("channels")
 
-	queryStr := db.ParameterizeJSON(`[{"eq": ?, "in": ["name"]}]`, name)
+	queryStr := ParameterizeJSON(`[{"eq": ?, "in": ["name"]}]`, name)
 	var query interface{}
 	jzon.Unmarshal([]byte(queryStr), &query)
 
